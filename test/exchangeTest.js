@@ -6,7 +6,7 @@ describe("Exchange", () => {
   let baseToken;
   let quoteToken;
   let accounts;
-  let liquduityFee;
+  let liquidityFee;
   let initialSupply;
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe("Exchange", () => {
     const Exchange = await deployments.get("EGT Exchange");
     exchange = new ethers.Contract(Exchange.address, Exchange.abi, accounts[0]);
 
-    liquduityFee = (await exchange.liquidityFee()) / 10000;
+    liquidityFee = (await exchange.liquidityFee()) / 10000;
     initialSupply = await baseToken.totalSupply();
   });
 
@@ -220,7 +220,7 @@ describe("Exchange", () => {
 
     // trader executes the first trade, our pricing should be ~1:1 currently minus fees
     const swapAmount = 100000;
-    const expectedFee = swapAmount * liquduityFee;
+    const expectedFee = swapAmount * liquidityFee;
 
     const baseTokenReserveBalance = await baseToken.balanceOf(exchange.address);
     let pricingConstantK = await exchange.pricingConstantK();
@@ -260,7 +260,7 @@ describe("Exchange", () => {
     expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
 
     const swapAmount2 = 200000;
-    const expectedFee2 = swapAmount2 * liquduityFee;
+    const expectedFee2 = swapAmount2 * liquidityFee;
     const baseTokenReserveBalance2 = await baseToken.balanceOf(
       exchange.address
     );
@@ -326,7 +326,7 @@ describe("Exchange", () => {
 
     // trader executes the first trade
     const quoteTokenQtyToTrade = 100000;
-    const expectedFee = quoteTokenQtyToTrade * liquduityFee;
+    const expectedFee = quoteTokenQtyToTrade * liquidityFee;
 
     const baseTokenReserveQtyBalance = await baseToken.balanceOf(
       exchange.address
@@ -366,7 +366,7 @@ describe("Exchange", () => {
     expect(await baseToken.balanceOf(trader.address)).to.equal(0);
 
     const quoteTokenQtyToTrade2 = 200000;
-    const expectedFee2 = quoteTokenQtyToTrade2 * liquduityFee;
+    const expectedFee2 = quoteTokenQtyToTrade2 * liquidityFee;
     const baseTokenReserveQtyBalance2 = await baseToken.balanceOf(
       exchange.address
     );
