@@ -40,7 +40,7 @@ describe("Exchange", () => {
     expect(await exchange.quoteToken()).to.equal(quoteToken.address);
   });
 
-  it("Should allow for user to supply liquidity and immediately withdrawl equal amounts", async () => {
+  it("Should allow for user to supply liquidity and immediately withdrawal equal amounts", async () => {
     const amountToAdd = 1000000;
     // create expiration 50 minutes from now.
     const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -99,13 +99,13 @@ describe("Exchange", () => {
     );
   });
 
-  it("Should allow for user to supply liquidity, a rebase to occur, and correct withdraw of rebased qty", async () => {
+  it("Should allow for user to supply liquidity, a rebase to occur, and correct withdraw of re-based qty", async () => {
     const amountToAdd = 1000000;
     // create expiration 50 minutes from now.
     const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
     const liquidityProvider = accounts[1];
 
-    // send a second user (liquduity provider) quote and base tokens for easy accounting.
+    // send a second user (liquidity provider) quote and base tokens for easy accounting.
     await quoteToken.transfer(liquidityProvider.address, amountToAdd);
     await baseToken.transfer(liquidityProvider.address, amountToAdd);
 
@@ -143,7 +143,7 @@ describe("Exchange", () => {
       amountToAdd
     );
 
-    // simluate a rebase by sending more tokens to our exchange contract.
+    // simulate a rebase by sending more tokens to our exchange contract.
     expect(await quoteToken.balanceOf(exchange.address)).to.equal(amountToAdd);
     const rebaseAmount = 1000;
     await quoteToken.transfer(exchange.address, rebaseAmount);
@@ -186,7 +186,7 @@ describe("Exchange", () => {
     const liquidityProvider = accounts[1];
     const trader = accounts[2];
 
-    // send a second user (liquduity provider) quote and base tokens.
+    // send a second user (liquidity provider) quote and base tokens.
     await quoteToken.transfer(liquidityProvider.address, amountToAdd);
     await baseToken.transfer(liquidityProvider.address, amountToAdd);
 
@@ -236,7 +236,7 @@ describe("Exchange", () => {
       .connect(trader)
       .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
 
-    // confirm trade occured at expected
+    // confirm trade occurred at expected
     expect(await quoteToken.balanceOf(trader.address)).to.equal(
       Math.round(quoteTokenQtyExpected)
     );
@@ -244,7 +244,7 @@ describe("Exchange", () => {
       amountToAdd - swapAmount
     );
 
-    // simluate a 25% rebase by sending more tokens to our exchange contract.
+    // simulate a 25% rebase by sending more tokens to our exchange contract.
     const rebaseAmount = amountToAdd * 0.25;
     await quoteToken.transfer(exchange.address, rebaseAmount);
 
@@ -292,7 +292,7 @@ describe("Exchange", () => {
     const liquidityProvider = accounts[1];
     const trader = accounts[2];
 
-    // send a second user (liquduity provider) quote and base tokens.
+    // send a second user (liquidity provider) quote and base tokens.
     await quoteToken.transfer(liquidityProvider.address, amountToAdd);
     await baseToken.transfer(liquidityProvider.address, amountToAdd);
 
@@ -345,7 +345,7 @@ describe("Exchange", () => {
       .connect(trader)
       .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration);
 
-    // confirm trade occured at expected
+    // confirm trade occurred at expected
     expect(await baseToken.balanceOf(trader.address)).to.equal(
       Math.round(baseTokenQtyExpected)
     );
@@ -353,7 +353,7 @@ describe("Exchange", () => {
       amountToAdd - quoteTokenQtyToTrade
     );
 
-    // simluate a 25% rebase by sending more tokens to our exchange contract.
+    // simulate a 25% rebase by sending more tokens to our exchange contract.
     const rebaseAmount = amountToAdd * 0.25;
     await quoteToken.transfer(exchange.address, rebaseAmount);
 
@@ -393,7 +393,7 @@ describe("Exchange", () => {
     );
   });
 
-  it("Should return fees to correct liqudity provider", async () => {
+  it("Should return fees to correct liquidity provider", async () => {
     const amountToAdd = 1000000;
     // create expiration 50 minutes from now.
     const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -401,7 +401,7 @@ describe("Exchange", () => {
     const liquidityProvider2 = accounts[2];
     const trader = accounts[3];
 
-    // send a liquduity providers quote and base tokens.
+    // send a liquidity providers quote and base tokens.
     await quoteToken.transfer(liquidityProvider1.address, amountToAdd);
     await baseToken.transfer(liquidityProvider1.address, amountToAdd);
     await quoteToken.transfer(liquidityProvider2.address, amountToAdd);
@@ -449,7 +449,7 @@ describe("Exchange", () => {
       .connect(trader)
       .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
 
-    // simluate a 25% rebase by sending more tokens to our exchange contract.
+    // simulate a 25% rebase by sending more tokens to our exchange contract.
     const rebaseAmount = amountToAdd * 0.25;
     await quoteToken.transfer(exchange.address, rebaseAmount);
 
@@ -461,15 +461,15 @@ describe("Exchange", () => {
 
     // calculate current ratio for providing liquidity
     const quoteTokenReserveQty = await quoteToken.balanceOf(exchange.address);
-    const baseTokenResvereQty = await baseToken.balanceOf(exchange.address);
+    const baseTokenReserveQty = await baseToken.balanceOf(exchange.address);
     const ratio =
-      quoteTokenReserveQty.toNumber() / baseTokenResvereQty.toNumber();
+      quoteTokenReserveQty.toNumber() / baseTokenReserveQty.toNumber();
 
     const quoteTokenQtyToAdd = Math.round(amountToAdd * ratio);
 
-    // we also should calculate the expected liquidtyTokens LP#2 should recieve for this liquidity.
+    // we also should calculate the expected liquidityTokens LP#2 should receive for this liquidity.
     const expectedLiquidityTokenQty =
-      (amountToAdd * (await exchange.totalSupply())) / baseTokenResvereQty;
+      (amountToAdd * (await exchange.totalSupply())) / baseTokenReserveQty;
 
     // have second liquidity provider add liquidity
     await exchange
@@ -490,7 +490,7 @@ describe("Exchange", () => {
     const quoteTokenAddedAmountFromliquidityProvider2 =
       (await quoteToken.balanceOf(exchange.address)) - quoteTokenReserveQty;
     const baseTokenAddedAmountFromliquidityProvider2 =
-      (await baseToken.balanceOf(exchange.address)) - baseTokenResvereQty;
+      (await baseToken.balanceOf(exchange.address)) - baseTokenReserveQty;
 
     // confirm the LP#1 has no quote or base tokens
     expect(await quoteToken.balanceOf(liquidityProvider1.address)).to.equal(0);
@@ -520,7 +520,7 @@ describe("Exchange", () => {
     );
 
     // LP #2 should now be able to remove all his tokens
-    // in equal amounts to what he put in (no fees to him or trades occured).
+    // in equal amounts to what he put in (no fees to him or trades occurred).
     await exchange
       .connect(liquidityProvider2)
       .removeLiquidity(
@@ -543,7 +543,7 @@ describe("Exchange", () => {
     );
   });
 
-  it("Should not return fees to liqudity provider who didn't experience any trades", async () => {
+  it("Should not return fees to liquidity provider who didn't experience any trades", async () => {
     const amountToAdd = 1000000;
     // create expiration 50 minutes from now.
     const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -551,7 +551,7 @@ describe("Exchange", () => {
     const liquidityProvider2 = accounts[2];
     const trader = accounts[3];
 
-    // send a liquduity providers quote and base tokens.
+    // send a liquidity providers quote and base tokens.
     await quoteToken.transfer(liquidityProvider1.address, amountToAdd);
     await baseToken.transfer(liquidityProvider1.address, amountToAdd);
     await quoteToken.transfer(liquidityProvider2.address, amountToAdd);
@@ -599,7 +599,7 @@ describe("Exchange", () => {
       .connect(trader)
       .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
 
-    // simluate a 25% rebase by sending more tokens to our exchange contract.
+    // simulate a 25% rebase by sending more tokens to our exchange contract.
     const rebaseAmount = amountToAdd * 0.25;
     await quoteToken.transfer(exchange.address, rebaseAmount);
 
@@ -617,7 +617,7 @@ describe("Exchange", () => {
 
     const quoteTokenQtyToAdd = Math.round(amountToAdd * ratio);
 
-    // we also should calculate the expected liquidtyTokens LP#2 should recieve for this liquidity.
+    // we also should calculate the expected liquidityTokens LP#2 should receive for this liquidity.
     const expectedLiquidityTokenQty =
       (amountToAdd * (await exchange.totalSupply())) / baseTokenReserveQty;
 
@@ -642,7 +642,7 @@ describe("Exchange", () => {
     const baseTokenAddedAmountFromliquidityProvider2 =
       (await baseToken.balanceOf(exchange.address)) - baseTokenReserveQty;
 
-    // have second LP remove liquidty, they should get back the same mount, no fees back to them.
+    // have second LP remove liquidity, they should get back the same mount, no fees back to them.
     await exchange
       .connect(liquidityProvider2)
       .removeLiquidity(
@@ -656,7 +656,7 @@ describe("Exchange", () => {
     // confirm LP #2 has no more LP tokens
     expect(await exchange.balanceOf(liquidityProvider2.address)).to.equal(0);
 
-    // confrim LP #2 has the balances they started with (and nothing more)
+    // confirm LP #2 has the balances they started with (and nothing more)
     expect(await quoteToken.balanceOf(liquidityProvider2.address)).to.equal(
       amountToAdd - 1
     );
@@ -665,7 +665,7 @@ describe("Exchange", () => {
     );
   });
 
-  it("Should return the correct amout of tokens and fees to each liqudity provider", async () => {
+  it("Should return the correct amount of tokens and fees to each liquidity provider", async () => {
     const amountToAdd = 2000000;
     // create expiration 50 minutes from now.
     const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -673,7 +673,7 @@ describe("Exchange", () => {
     const liquidityProvider2 = accounts[2];
     const trader = accounts[3];
 
-    // send liquduity providers quote and base tokens.
+    // send liquidity providers quote and base tokens.
     await quoteToken.transfer(liquidityProvider1.address, amountToAdd);
     await baseToken.transfer(liquidityProvider1.address, amountToAdd);
     await quoteToken.transfer(liquidityProvider2.address, amountToAdd);
@@ -717,9 +717,9 @@ describe("Exchange", () => {
       .connect(trader)
       .swapBaseTokenForQuoteToken(baseTokenSwapAmount, 1, expiration);
 
-    // lp #2 now adds liqudity
+    // lp #2 now adds liquidity
     // calculate current ratio for providing liquidity.
-    // we want equal liqudity to what is already there so check the base balance
+    // we want equal liquidity to what is already there so check the base balance
     // for how many base tokens LP2 will need to add.
     const baseTokenQtyAddedByLp2 = await baseToken.balanceOf(exchange.address);
     const quoteTokenQty = await quoteToken.balanceOf(exchange.address);
@@ -740,7 +740,7 @@ describe("Exchange", () => {
         expiration
       );
 
-    // esnure both LPs have the same number of LP tokens
+    // ensure both LPs have the same number of LP tokens
     expect(await exchange.balanceOf(liquidityProvider1.address)).to.equal(
       await exchange.balanceOf(liquidityProvider2.address)
     );
@@ -751,9 +751,9 @@ describe("Exchange", () => {
       .swapBaseTokenForQuoteToken(baseTokenSwapAmount, 1, expiration);
 
     // we now should be able to have both lp token holders remove their lp tokens and
-    // ensure they recieved correct allocation of base tokens.
-    // LP1 should recieve all qty for trade #1 and half for trade #2
-    // LP2 should recieve qty for trade #2
+    // ensure they received correct allocation of base tokens.
+    // LP1 should receive all qty for trade #1 and half for trade #2
+    // LP2 should receive qty for trade #2
     // for easy accounting we will clear out the balances of base token in the lp accounts.
     await baseToken
       .connect(liquidityProvider1)
