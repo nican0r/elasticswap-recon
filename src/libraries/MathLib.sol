@@ -116,7 +116,7 @@ library MathLib {
      * @dev used to calculate the qty of liquidity tokens (deltaRo) we will be issued to a supplier
      * of a single asset entry when decay is present.
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
-     * @param _baseTokenQty the amount of base token the user it adding to the pool (deltaB / deltaY)
+     * @param _baseTokenQty the amount of base token the user it adding to the pool (deltaB or deltaY)
      * @param _baseTokenReserveBalance the total balance (external) of base tokens in our pool (Beta)
      *
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
@@ -161,7 +161,7 @@ library MathLib {
                 _internalBalances.baseTokenReserveQty
             );
 
-        // alphaDecay / sigma (A/B)
+        // alphaDecay / omega (A/B)
         uint256 maxBaseTokenQty =
             wDiv(quoteTokenDecay, wInternalQuoteTokenToBaseTokenRatio);
 
@@ -231,7 +231,7 @@ library MathLib {
                 _internalBalances.quoteTokenReserveQty
             );
 
-        // betaDecay / iSigma (B/A)
+        // betaDecay / iOmega (B/A)
         uint256 maxQuoteTokenQty =
             wDiv(baseTokenDecay, wInternalBaseToQuoteTokenRatio);
 
