@@ -118,4 +118,84 @@ describe("MathLib", () => {
       ).to.equal(15);
     });
   });
+
+  describe("roundToNearest", () => {
+    it("Should round up correctly", async () => {
+      expect(await mathLib.roundToNearest(10000005, 10)).to.equal(10000010);
+      expect(await mathLib.roundToNearest(10000006, 10)).to.equal(10000010);
+      expect(await mathLib.roundToNearest(10000007, 10)).to.equal(10000010);
+      expect(await mathLib.roundToNearest(10000008, 10)).to.equal(10000010);
+      expect(await mathLib.roundToNearest(10000009, 10)).to.equal(10000010);
+      expect(await mathLib.roundToNearest(10000010, 10)).to.equal(10000010);
+
+      expect(await mathLib.roundToNearest(333335000, 10000)).to.equal(
+        333340000
+      );
+      expect(await mathLib.roundToNearest(333335001, 10000)).to.equal(
+        333340000
+      );
+      expect(await mathLib.roundToNearest(333335999, 10000)).to.equal(
+        333340000
+      );
+      expect(await mathLib.roundToNearest(333336999, 10000)).to.equal(
+        333340000
+      );
+      expect(await mathLib.roundToNearest(333339999, 10000)).to.equal(
+        333340000
+      );
+    });
+
+    it("Should round down correctly", async () => {
+      expect(await mathLib.roundToNearest(10000000, 10)).to.equal(10000000);
+      expect(await mathLib.roundToNearest(10000001, 10)).to.equal(10000000);
+      expect(await mathLib.roundToNearest(10000002, 10)).to.equal(10000000);
+      expect(await mathLib.roundToNearest(10000003, 10)).to.equal(10000000);
+      expect(await mathLib.roundToNearest(10000004, 10)).to.equal(10000000);
+      expect(await mathLib.roundToNearest(10000499, 1000)).to.equal(10000000);
+
+      expect(await mathLib.roundToNearest(333330000, 10000)).to.equal(
+        333330000
+      );
+      expect(await mathLib.roundToNearest(333330001, 10000)).to.equal(
+        333330000
+      );
+      expect(await mathLib.roundToNearest(333331999, 10000)).to.equal(
+        333330000
+      );
+      expect(await mathLib.roundToNearest(333332999, 10000)).to.equal(
+        333330000
+      );
+      expect(await mathLib.roundToNearest(333332999, 10000)).to.equal(
+        333330000
+      );
+      expect(await mathLib.roundToNearest(333334999, 10000)).to.equal(
+        333330000
+      );
+    });
+
+    it("Should handle 0 correctly", async () => {
+      expect(await mathLib.roundToNearest(0, 10)).to.equal(0);
+    });
+  });
+
+  describe("diff", () => {
+    it("Should handle a > b correctly", async () => {
+      expect(await mathLib.diff(2000, 200)).to.equal(2000 - 200);
+      expect(await mathLib.diff(5555, 333)).to.equal(5555 - 333);
+    });
+
+    it("Should handle a < b correctly", async () => {
+      expect(await mathLib.diff(200, 2000)).to.equal(2000 - 200);
+      expect(await mathLib.diff(333, 5555)).to.equal(5555 - 333);
+    });
+
+    it("Should handle a == b correctly", async () => {
+      expect(await mathLib.diff(100, 100)).to.equal(0);
+    });
+
+    it("Should handle 0's correctly", async () => {
+      expect(await mathLib.diff(0, 10)).to.equal(10);
+      expect(await mathLib.diff(10, 0)).to.equal(10);
+    });
+  });
 });
