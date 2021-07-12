@@ -6,6 +6,7 @@ import "../libraries/MathLib.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title Exchange contract for Elastic Swap representing a single ERC20 pair of tokens to be swapped.
@@ -13,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @notice This contract provides all of the needed functionality for a liquidity provider to supply/withdraw ERC20
  * tokens and traders to swap tokens for one another.
  */
-contract Exchange is ERC20 {
+contract Exchange is ERC20, ReentrancyGuard {
     using MathLib for uint256;
     using SafeERC20 for IERC20;
 
@@ -77,7 +78,7 @@ contract Exchange is ERC20 {
         uint256 _baseTokenQtyMin,
         address _liquidityTokenRecipient,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
 
         (
@@ -132,7 +133,7 @@ contract Exchange is ERC20 {
         uint256 _quoteTokenQtyMin,
         address _liquidityTokenRecipient,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         // to calculate decay in base token, we need to see if we have less
         // quote token than we expect.  This would mean a rebase down has occurred.
@@ -179,7 +180,7 @@ contract Exchange is ERC20 {
         uint256 _baseTokenQtyMin,
         address _liquidityTokenRecipient,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
 
         uint256 quoteTokenReserveQty =
@@ -224,7 +225,7 @@ contract Exchange is ERC20 {
         uint256 _baseTokenQtyMin,
         address _tokenRecipient,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         require(this.totalSupply() > 0, "Exchange: INSUFFICIENT_LIQUIDITY");
         require(
@@ -283,7 +284,7 @@ contract Exchange is ERC20 {
         uint256 _quoteTokenQty,
         uint256 _minBaseTokenQty,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
 
         uint256 baseTokenQty =
@@ -314,7 +315,7 @@ contract Exchange is ERC20 {
         uint256 _baseTokenQty,
         uint256 _minQuoteTokenQty,
         uint256 _expirationTimestamp
-    ) external {
+    ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         require(
             _baseTokenQty > 0 && _minQuoteTokenQty > 0,
