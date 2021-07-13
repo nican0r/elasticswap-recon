@@ -49,7 +49,7 @@ describe("Exchange", () => {
   });
 
   describe("swapBaseTokenForQuoteToken", () => {
-    it("Should price trades correctly before and after a rebase when trading the base token", async () => {
+    it("Should price trades correctly before and after a rebase up", async () => {
       const amountToAdd = 1000000;
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -161,6 +161,390 @@ describe("Exchange", () => {
       );
     });
 
+    it("Should price trades correctly after a rebase up and removing liquidity", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+      expect(await baseToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      const baseTokenReserveBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+      let pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveBalance.toNumber();
+      const quoteTokenQtyReserveAfterTrade =
+        pricingConstantK /
+        (baseTokenReserveBalance.toNumber() + swapAmount - expectedFee);
+      const quoteTokenQtyExpected =
+        quoteTokenQtyReserveBeforeTrade - quoteTokenQtyReserveAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.round(quoteTokenQtyExpected)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount
+      );
+
+      // simulate a 25% rebase by sending more tokens to our exchange contract.
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.transfer(exchange.address, rebaseAmount);
+
+      // remove half of our liquidity.
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          amountToAdd / 2,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the price is unchanged based on the rebase
+      // to make accounting easier, we will clear all quote tokens out of our traders wallet now.
+      await quoteToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await quoteToken.balanceOf(trader.address)
+        );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+
+      const swapAmount2 = 200000;
+      const expectedFee2 = swapAmount2 * liquidityFee;
+      const baseTokenReserveBalance2 = await baseToken.balanceOf(
+        exchange.address
+      );
+      pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade2 =
+        pricingConstantK / baseTokenReserveBalance2.toNumber();
+      const quoteTokenQtyReserveAfterTrade2 =
+        pricingConstantK /
+        (baseTokenReserveBalance2.toNumber() + swapAmount2 - expectedFee2);
+      const quoteTokenQtyExpected2 =
+        quoteTokenQtyReserveBeforeTrade2 - quoteTokenQtyReserveAfterTrade2;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount2, 1, expiration);
+
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.round(quoteTokenQtyExpected2)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount - swapAmount2
+      );
+    });
+
+    it("Should price trades correctly before and after a rebase down", async () => {
+      const amountToAdd = 10000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+      expect(await baseToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      const baseTokenReserveBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+
+      const pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveBalance.toNumber();
+
+      const quoteTokenQtyReserveAfterTrade =
+        pricingConstantK /
+        (baseTokenReserveBalance.toNumber() + swapAmount - expectedFee);
+
+      const quoteTokenQtyExpected =
+        quoteTokenQtyReserveBeforeTrade - quoteTokenQtyReserveAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.floor(quoteTokenQtyExpected)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount
+      );
+
+      // establish pricing ratio before rebase
+      const pricingRatio =
+        (await exchange.internalBalances()).quoteTokenReserveQty /
+        (await exchange.internalBalances()).baseTokenReserveQty;
+
+      // simulate a 25% rebase by down
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.simulateRebaseDown(exchange.address, rebaseAmount);
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the pricing ratio holds from before the rebase
+      await quoteToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await quoteToken.balanceOf(trader.address)
+        );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+
+      const swapAmount2 = 100000;
+      const expectedFee2 = swapAmount2 * liquidityFee;
+
+      const exchangeQuoteTokenReserveBalance = await quoteToken.balanceOf(
+        exchange.address
+      );
+      const impliedBaseTokenReserveQty =
+        exchangeQuoteTokenReserveBalance / pricingRatio;
+
+      const impliedK =
+        exchangeQuoteTokenReserveBalance * impliedBaseTokenReserveQty;
+
+      const impliedBaseTokenReserveQtyAfterTrade =
+        impliedBaseTokenReserveQty + swapAmount2 - expectedFee2;
+      const exchangeQuoteTokenReserveBalanceAfterTrade =
+        impliedK / impliedBaseTokenReserveQtyAfterTrade;
+
+      const quoteTokenQtyExpected2 =
+        exchangeQuoteTokenReserveBalance -
+        exchangeQuoteTokenReserveBalanceAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount2, 1, expiration);
+
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.floor(quoteTokenQtyExpected2)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount - swapAmount2
+      );
+    });
+
+    it("Should price trades correctly after a rebase down and removing liquidity", async () => {
+      const amountToAdd = 10000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+      expect(await baseToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      const baseTokenReserveBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+
+      const pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveBalance.toNumber();
+
+      const quoteTokenQtyReserveAfterTrade =
+        pricingConstantK /
+        (baseTokenReserveBalance.toNumber() + swapAmount - expectedFee);
+
+      const quoteTokenQtyExpected =
+        quoteTokenQtyReserveBeforeTrade - quoteTokenQtyReserveAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.floor(quoteTokenQtyExpected)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount
+      );
+
+      // establish pricing ratio before rebase
+      const pricingRatio =
+        (await exchange.internalBalances()).quoteTokenReserveQty /
+        (await exchange.internalBalances()).baseTokenReserveQty;
+
+      // simulate a 25% rebase by down
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.simulateRebaseDown(exchange.address, rebaseAmount);
+
+      // remove 1/2 off our liquidity which shouldn't affect our pricing ratio at all.
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          amountToAdd / 2,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the pricing ratio holds from before the rebase
+      await quoteToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await quoteToken.balanceOf(trader.address)
+        );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+
+      const swapAmount2 = 200000;
+      const expectedFee2 = swapAmount2 * liquidityFee;
+
+      const exchangeQuoteTokenReserveBalance = await quoteToken.balanceOf(
+        exchange.address
+      );
+      const impliedBaseTokenReserveQty =
+        exchangeQuoteTokenReserveBalance / pricingRatio;
+
+      const impliedK =
+        exchangeQuoteTokenReserveBalance * impliedBaseTokenReserveQty;
+
+      const impliedBaseTokenReserveQtyAfterTrade =
+        impliedBaseTokenReserveQty + swapAmount2 - expectedFee2;
+      const exchangeQuoteTokenReserveBalanceAfterTrade =
+        impliedK / impliedBaseTokenReserveQtyAfterTrade;
+
+      const quoteTokenQtyExpected2 =
+        exchangeQuoteTokenReserveBalance -
+        exchangeQuoteTokenReserveBalanceAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount2, 1, expiration);
+
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        Math.floor(quoteTokenQtyExpected2)
+      );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount - swapAmount2
+      );
+    });
+
     it("Should revert when _expirationTimestamp is expired", async () => {
       const expiration = Math.round(new Date().getTime() / 1000 - 60 * 50); // 50 minutes in the past.
       const liquidityProvider = accounts[1];
@@ -253,7 +637,7 @@ describe("Exchange", () => {
   });
 
   describe("swapQuoteTokenForBaseToken", () => {
-    it("Should price trades correctly before and after a rebase when trading the quote token", async () => {
+    it("Should price trades correctly before and after a rebase up", async () => {
       const amountToAdd = 1000000;
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
@@ -326,6 +710,373 @@ describe("Exchange", () => {
       // simulate a 25% rebase by sending more tokens to our exchange contract.
       const rebaseAmount = amountToAdd * 0.25;
       await quoteToken.transfer(exchange.address, rebaseAmount);
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the price is unchanged based on the rebase
+      // to make accounting easier, we will clear all base tokens out of our traders wallet now.
+      await baseToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await baseToken.balanceOf(trader.address)
+        );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+
+      const quoteTokenQtyToTrade2 = 200000;
+      const expectedFee2 = quoteTokenQtyToTrade2 * liquidityFee;
+      const baseTokenReserveQtyBalance2 = await baseToken.balanceOf(
+        exchange.address
+      );
+
+      pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade2 =
+        pricingConstantK / baseTokenReserveQtyBalance2.toNumber();
+      const quoteTokenQtyReserveAfterTrade2 =
+        quoteTokenQtyReserveBeforeTrade2 + quoteTokenQtyToTrade2 - expectedFee2;
+      const baseTokenReserveQtyAfterTrade2 =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade2;
+      const baseTokenQtyExpected2 =
+        baseTokenReserveQtyBalance2 - baseTokenReserveQtyAfterTrade2;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade2, 1, expiration);
+
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected2)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade - quoteTokenQtyToTrade2
+      );
+    });
+
+    it("Should price trades correctly before and after a rebase up and removing liquidity", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await quoteToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade
+      const quoteTokenQtyToTrade = 100000;
+      const expectedFee = quoteTokenQtyToTrade * liquidityFee;
+
+      const baseTokenReserveQtyBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+      let pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveQtyBalance.toNumber();
+      const quoteTokenQtyReserveAfterTrade =
+        quoteTokenQtyReserveBeforeTrade + quoteTokenQtyToTrade - expectedFee;
+      const baseTokenReserveQtyAfterTrade =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade;
+      const baseTokenQtyExpected =
+        baseTokenReserveQtyBalance - baseTokenReserveQtyAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade
+      );
+
+      // simulate a 25% rebase by sending more tokens to our exchange contract.
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.transfer(exchange.address, rebaseAmount);
+
+      // remove liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          amountToAdd / 2,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the price is unchanged based on the rebase
+      // to make accounting easier, we will clear all base tokens out of our traders wallet now.
+      await baseToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await baseToken.balanceOf(trader.address)
+        );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+
+      const quoteTokenQtyToTrade2 = 200000;
+      const expectedFee2 = quoteTokenQtyToTrade2 * liquidityFee;
+      const baseTokenReserveQtyBalance2 = await baseToken.balanceOf(
+        exchange.address
+      );
+
+      pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade2 =
+        pricingConstantK / baseTokenReserveQtyBalance2.toNumber();
+      const quoteTokenQtyReserveAfterTrade2 =
+        quoteTokenQtyReserveBeforeTrade2 + quoteTokenQtyToTrade2 - expectedFee2;
+      const baseTokenReserveQtyAfterTrade2 =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade2;
+      const baseTokenQtyExpected2 =
+        baseTokenReserveQtyBalance2 - baseTokenReserveQtyAfterTrade2;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade2, 1, expiration);
+
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected2)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade - quoteTokenQtyToTrade2
+      );
+    });
+
+    it("Should price trades correctly before and after a rebase down", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await quoteToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade
+      const quoteTokenQtyToTrade = 100000;
+      const expectedFee = quoteTokenQtyToTrade * liquidityFee;
+
+      const baseTokenReserveQtyBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+      let pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveQtyBalance.toNumber();
+      const quoteTokenQtyReserveAfterTrade =
+        quoteTokenQtyReserveBeforeTrade + quoteTokenQtyToTrade - expectedFee;
+      const baseTokenReserveQtyAfterTrade =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade;
+      const baseTokenQtyExpected =
+        baseTokenReserveQtyBalance - baseTokenReserveQtyAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade
+      );
+
+      // simulate a 25% rebase down
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.simulateRebaseDown(exchange.address, rebaseAmount);
+
+      // we have now simulated a rebase in quote token, we can execute a second
+      // trade and confirm the price is unchanged based on the rebase
+      // to make accounting easier, we will clear all base tokens out of our traders wallet now.
+      await baseToken
+        .connect(trader)
+        .transfer(
+          accounts[0].address,
+          await baseToken.balanceOf(trader.address)
+        );
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+
+      const quoteTokenQtyToTrade2 = 200000;
+      const expectedFee2 = quoteTokenQtyToTrade2 * liquidityFee;
+      const baseTokenReserveQtyBalance2 = await baseToken.balanceOf(
+        exchange.address
+      );
+
+      pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade2 =
+        pricingConstantK / baseTokenReserveQtyBalance2.toNumber();
+      const quoteTokenQtyReserveAfterTrade2 =
+        quoteTokenQtyReserveBeforeTrade2 + quoteTokenQtyToTrade2 - expectedFee2;
+      const baseTokenReserveQtyAfterTrade2 =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade2;
+      const baseTokenQtyExpected2 =
+        baseTokenReserveQtyBalance2 - baseTokenReserveQtyAfterTrade2;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade2, 1, expiration);
+
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected2)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade - quoteTokenQtyToTrade2
+      );
+    });
+
+    it("Should price trades correctly before and after a rebase down and removing liquidity", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await quoteToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade
+      const quoteTokenQtyToTrade = 100000;
+      const expectedFee = quoteTokenQtyToTrade * liquidityFee;
+
+      const baseTokenReserveQtyBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+      let pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveQtyBalance.toNumber();
+      const quoteTokenQtyReserveAfterTrade =
+        quoteTokenQtyReserveBeforeTrade + quoteTokenQtyToTrade - expectedFee;
+      const baseTokenReserveQtyAfterTrade =
+        pricingConstantK / quoteTokenQtyReserveAfterTrade;
+      const baseTokenQtyExpected =
+        baseTokenReserveQtyBalance - baseTokenReserveQtyAfterTrade;
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        Math.round(baseTokenQtyExpected)
+      );
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - quoteTokenQtyToTrade
+      );
+
+      // simulate a 25% rebase down
+      const rebaseAmount = amountToAdd * 0.25;
+      await quoteToken.simulateRebaseDown(exchange.address, rebaseAmount);
+
+      // remove liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          amountToAdd / 2,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
 
       // we have now simulated a rebase in quote token, we can execute a second
       // trade and confirm the price is unchanged based on the rebase

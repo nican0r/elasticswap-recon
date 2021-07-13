@@ -567,12 +567,12 @@ library MathLib {
                 ); // omega
 
             uint256 impliedBaseTokenQty =
-                wDiv(_quoteTokenReserveQty, wPricingRatio) / WAD;
+                wDiv(_quoteTokenReserveQty, wPricingRatio); // no need to divide by WAD, wPricingRatio is already a WAD.
 
             quoteTokenQty = calculateQtyToReturnAfterFees(
                 _baseTokenQty,
                 impliedBaseTokenQty,
-                _quoteTokenReserveQty,
+                _quoteTokenReserveQty, // use the actual balance here since we adjusted the base token to match ratio!
                 _liquidityFeeInBasisPoints
             );
         } else {
