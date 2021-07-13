@@ -253,14 +253,17 @@ contract Exchange is ERC20, ReentrancyGuard {
             "Exchange: INSUFFICIENT_BASE_QTY"
         );
 
-        // we need to ensure no overflow here in the case when
-        // we are removing assets when a decay is present.
-        if (quoteTokenQtyToReturn > internalBalances.quoteTokenReserveQty) {
-            internalBalances.quoteTokenReserveQty = 0;
-        } else {
-            internalBalances.quoteTokenReserveQty -= quoteTokenQtyToReturn;
-        }
+        // this ensure that we are removing the equivalent amount of decay
+        // when this person exits.
+        uint256 quoteTokenQtyToRemoveFromInternalAccounting =
+            (_liquidityTokenQty * internalBalances.quoteTokenReserveQty) /
+                this.totalSupply();
 
+        internalBalances
+            .quoteTokenReserveQty -= quoteTokenQtyToRemoveFromInternalAccounting;
+
+        // we need to ensure no overflow here in the case when
+        // we are removing assets when a decay is present. (not sure if this is true, need test.)
         if (baseTokenQtyToReturn > internalBalances.baseTokenReserveQty) {
             internalBalances.baseTokenReserveQty = 0;
         } else {
