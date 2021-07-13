@@ -79,7 +79,7 @@ library MathLib {
                 _internalBalances.quoteTokenReserveQty,
                 _internalBalances.baseTokenReserveQty
             )
-        ) >= WAD); // the amount of quote token decay is greater than 1 unit of base token
+        ) >= WAD); // the amount of quote token (a) decay is greater than 1 unit of base token (token b)
     }
 
     /**
