@@ -47,6 +47,7 @@ Liquidity Tokens `Ro` are provided to liquidity providers.
 There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
 
 1. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
+
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
    ```
@@ -85,8 +86,56 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    Note: Y', X', Ro' become Y, X, Ro respectively for the next following liquidity event(regardless of it being single or double asset entry).
    ```
 
+   The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+
+   ```solidity
+   function addLiquidity(
+     uint256 _quoteTokenQtyDesired,
+     uint256 _baseTokenQtyDesired,
+     uint256 _quoteTokenQtyMin,
+     uint256 _baseTokenQtyMin,
+     address _liquidityTokenRecipient,
+     uint256 _expirationTimestamp
+   ) external {
+     isNotExpired(_expirationTimestamp);
+
+     (uint256 quoteTokenQty, uint256 baseTokenQty, uint256 liquidityTokenQty) =
+       MathLib.calculateAddLiquidityQuantities(
+         _quoteTokenQtyDesired,
+         _baseTokenQtyDesired,
+         _quoteTokenQtyMin,
+         _baseTokenQtyMin,
+         IERC20(quoteToken).balanceOf(address(this)),
+         IERC20(baseToken).balanceOf(address(this)),
+         this.totalSupply(),
+         internalBalances
+       );
+
+     if (quoteTokenQty != 0) {
+       // transfer quote tokens to Exchange
+       IERC20(quoteToken).safeTransferFrom(
+         msg.sender,
+         address(this),
+         quoteTokenQty
+       );
+     }
+     if (baseTokenQty != 0) {
+       // transfer base tokens to Exchange
+       IERC20(baseToken).safeTransferFrom(
+         msg.sender,
+         address(this),
+         baseTokenQty
+       );
+     }
+     _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+   }
+
+   ```
+
 2. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
+
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
+
    ```
    ΔRo = (Ro/(1 - γ)) * γ
    where,
@@ -94,14 +143,101 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    # γ = ΔY / Y / 2 * ( ΔX / α^ )
    # ΔY = α^ / ω   - The amount of baseTokens required to completely offset alphaDecay.TODO: Add BetaDecay version as well
    ```
+
+   The solidity functions that do this are:
+
+   - `addQuoteTokenLiquidity` - when there is `BetaDecay (β^)`
+
+     ```solidity
+     function addQuoteTokenLiquidity(
+       uint256 _quoteTokenQtyDesired,
+       uint256 _quoteTokenQtyMin,
+       address _liquidityTokenRecipient,
+       uint256 _expirationTimestamp
+     ) external {
+       isNotExpired(_expirationTimestamp);
+       // to calculate decay in base token, we need to see if we have less
+       // quote token than we expect.  This would mean a rebase down has occurred.
+       uint256 quoteTokenReserveQty =
+         IERC20(quoteToken).balanceOf(address(this));
+
+       require(
+         internalBalances.quoteTokenReserveQty > quoteTokenReserveQty,
+         "Exchange: NO_BASE_DECAY"
+       );
+
+       (uint256 quoteTokenQty, uint256 liquidityTokenQty) =
+         MathLib.calculateAddQuoteTokenLiquidityQuantities(
+           _quoteTokenQtyDesired,
+           _quoteTokenQtyMin,
+           quoteTokenReserveQty,
+           this.totalSupply(),
+           internalBalances
+         );
+
+       IERC20(quoteToken).safeTransferFrom(
+         msg.sender,
+         address(this),
+         quoteTokenQty
+       ); // transfer quote tokens to Exchange
+
+       _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+     }
+
+     ```
+
+   - `addBaseTokenLiquidity` - when there is `alphaDecay (α^)`
+
+     ```solidity
+     function addBaseTokenLiquidity(
+       uint256 _baseTokenQtyDesired,
+       uint256 _baseTokenQtyMin,
+       address _liquidityTokenRecipient,
+       uint256 _expirationTimestamp
+     ) external {
+       isNotExpired(_expirationTimestamp);
+
+       uint256 quoteTokenReserveQty =
+         IERC20(quoteToken).balanceOf(address(this));
+
+       require(
+         quoteTokenReserveQty > internalBalances.quoteTokenReserveQty,
+         "Exchange: NO_QUOTE_DECAY"
+       );
+
+       (uint256 baseTokenQty, uint256 liquidityTokenQty) =
+         MathLib.calculateAddBaseTokenLiquidityQuantities(
+           _baseTokenQtyDesired,
+           _baseTokenQtyMin,
+           quoteTokenReserveQty,
+           this.totalSupply(),
+           internalBalances
+         );
+
+       IERC20(baseToken).safeTransferFrom(
+         msg.sender,
+         address(this),
+         baseTokenQty
+       ); // transfer base tokens to Exchange
+
+       _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+     }
+
+     ```
+
+   They can also be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+
 3. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider recieves `ΔRo`(liquidity tokens) that takes into account both the entires.
+
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
+
    ```
    ΔRo = ΔRo(SAE) + ΔRo(DAE)
    where,
    # ΔRo(SAE) - The liquidity tokens recieved due to the SingleAssetEntry
    # ΔRo(SAE) - The liquidity tokens recieved due to the DoubleAssetEntry
    ```
+
    > Note: In `PartialSingleAndDoubleAssetEntry` it is possible that the user might end up with a certain amount of unused `quoteToken` or `baseToken`, This is because in the presence of `AlphaDecay (α^)` the `SingleAssetEntry` uses up a certain amount of `baseToken` and then the remaining amount of which is used along with an equivalent amount of `quoteToken` for the `DoubleAssetEntry`, the value of which could be lower than the amount the liquidity provider wanted to provide.
 
 ## Redemption of liquidity Tokens `ΔRo`
@@ -119,6 +255,62 @@ where,
 # ΔY - The amount of baseTokens the liquidity provider recieves
 # α - The balance of quoteToken currently in the exchange
 # β - The balance of baseToken currently in the exchange
+
+```
+
+The function that handles this is `removeLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol).
+
+```solidity
+function removeLiquidity(
+  uint256 _liquidityTokenQty,
+  uint256 _quoteTokenQtyMin,
+  uint256 _baseTokenQtyMin,
+  address _tokenRecipient,
+  uint256 _expirationTimestamp
+) external {
+  isNotExpired(_expirationTimestamp);
+  require(this.totalSupply() > 0, "Exchange: INSUFFICIENT_LIQUIDITY");
+  require(
+    _quoteTokenQtyMin > 0 && _baseTokenQtyMin > 0,
+    "Exchange: MINS_MUST_BE_GREATER_THAN_ZERO"
+  );
+
+  uint256 quoteTokenReserveQty = IERC20(quoteToken).balanceOf(address(this));
+  uint256 baseTokenReserveQty = IERC20(baseToken).balanceOf(address(this));
+
+  uint256 quoteTokenQtyToReturn =
+    (_liquidityTokenQty * quoteTokenReserveQty) / this.totalSupply();
+  uint256 baseTokenQtyToReturn =
+    (_liquidityTokenQty * baseTokenReserveQty) / this.totalSupply();
+
+  require(
+    quoteTokenQtyToReturn >= _quoteTokenQtyMin,
+    "Exchange: INSUFFICIENT_QUOTE_QTY"
+  );
+
+  require(
+    baseTokenQtyToReturn >= _baseTokenQtyMin,
+    "Exchange: INSUFFICIENT_BASE_QTY"
+  );
+
+  // we need to ensure no overflow here in the case when
+  // we are removing assets when a decay is present.
+  if (quoteTokenQtyToReturn > internalBalances.quoteTokenReserveQty) {
+    internalBalances.quoteTokenReserveQty = 0;
+  } else {
+    internalBalances.quoteTokenReserveQty -= quoteTokenQtyToReturn;
+  }
+
+  if (baseTokenQtyToReturn > internalBalances.baseTokenReserveQty) {
+    internalBalances.baseTokenReserveQty = 0;
+  } else {
+    internalBalances.baseTokenReserveQty -= baseTokenQtyToReturn;
+  }
+
+  _burn(msg.sender, _liquidityTokenQty);
+  IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
+  IERC20(baseToken).safeTransfer(_tokenRecipient, baseTokenQtyToReturn);
+}
 
 ```
 
