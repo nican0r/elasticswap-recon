@@ -551,6 +551,12 @@ library MathLib {
             "Exchange: INSUFFICIENT_TOKEN_QTY"
         );
 
+        require(
+            _quoteTokenReserveQty > 0 &&
+                _internalBalances.quoteTokenReserveQty > 0,
+            "Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY"
+        );
+
         // check to see if we have experience base token decay / a rebase down event
         if (_quoteTokenReserveQty < _internalBalances.quoteTokenReserveQty) {
             // we have less reserves than our current price curve will expect, we need to adjust the curve
