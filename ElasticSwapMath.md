@@ -46,11 +46,11 @@ Whenever there is a rebase event that occurs, which results in the increase or d
 Liquidity Tokens `Ro` are provided to liquidity providers.
 There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
 
-1. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system.
+1. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
    ```
-   ΔRo = (ΔY/Y) * ( Ro / (1 - (ΔY/Y))  or  (ΔY/Y) * Ro ?
+   ΔRo = (ΔY/Y) * Ro
    where,
    # ΔRo - The amount of tokens the liquidity provider recieves.
    # ΔY - The amount of baseTokens the liquidity provider wants to provide.
@@ -103,3 +103,23 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    # ΔRo(SAE) - The liquidity tokens recieved due to the DoubleAssetEntry
    ```
    > Note: In `PartialSingleAndDoubleAssetEntry` it is possible that the user might end up with a certain amount of unused `quoteToken` or `baseToken`, This is because in the presence of `AlphaDecay (α^)` the `SingleAssetEntry` uses up a certain amount of `baseToken` and then the remaining amount of which is used along with an equivalent amount of `quoteToken` for the `DoubleAssetEntry`, the value of which could be lower than the amount the liquidity provider wanted to provide.
+
+## Redemption of liquidity Tokens `ΔRo`
+
+Liquidity tokens increase in value due to accrual of trading fees, and can be exchanged for equivalent amounts of `quoteToken` and `baseToken`.
+The amount of `quoteToken` and `baseToken` recieved is given by:
+
+```
+ΔX = α * ΔRo / Ro
+ΔY = β * ΔRo / Ro
+
+where,
+# ΔRo - The amount of liquidity tokens the liquidity provider wants to exchange
+# ΔX - The amount of quoteToken the liquidity provider receives
+# ΔY - The amount of baseTokens the liquidity provider recieves
+# α - The balance of quoteToken currently in the exchange
+# β - The balance of baseToken currently in the exchange
+
+```
+
+> Note: It is possible to redeem `Ro` when there is decay (alpha or beta) present in the system.
