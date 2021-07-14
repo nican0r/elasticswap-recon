@@ -135,6 +135,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 2. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
+   When there is `alphaDecay`:
 
    ```
    ΔRo = (Ro/(1 - γ)) * γ
@@ -142,9 +143,22 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    # ΔRo - The amount of tokens the liquidity provider recieves.
    # γ = ΔY / Y / 2 * ( ΔX / α^ )
    # ΔY = α^ / ω   - The amount of baseTokens required to completely offset alphaDecay.
+
+   ///deltaX = betaDecay(~ alpdaDecay * w) / w
+   ```
+
+   When there is `betaDecay`:
+
+   ```
+   ΔRo = (Ro/(1 - γ)) * γ
+   where,
+   # ΔRo - The amount of tokens the liquidity provider recieves.
+   # γ = ΔX / X / 2 * ( ΔX / β^ )
+   # ΔX = α - X   - The amount of quoteTokens required to completely offset betaDecay(and be extension alphaDecay).
+   # β^ = ΔX  / ω
    TODO: Add BetaDecay version as well
    dx = alpha - x => betaDecay = dx * iW
-   ///deltaX = betaDecay(~ alpdaDecay * w) / w
+   ///deltaX = betaDec
    ```
 
    The solidity functions that do this are:
