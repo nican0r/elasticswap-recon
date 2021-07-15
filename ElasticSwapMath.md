@@ -53,7 +53,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    ```
    ΔRo = (ΔY/Y) * Ro
    where,
-   # ΔRo - The amount of tokens the liquidity provider recieves.
+   # ΔRo - The amount of tokens the liquidity provider receives.
    # ΔY - The amount of baseTokens the liquidity provider wants to provide.
    # Y - The internal balance of baseToken.
    # Ro - The current total supply of the liquidityToken
@@ -140,7 +140,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    ```
    ΔRo = (Ro/(1 - γ)) * γ
    where,
-   # ΔRo - The amount of tokens the liquidity provider recieves.
+   # ΔRo - The amount of tokens the liquidity provider receives.
    # γ = ΔY / Y / 2 * ( ΔX / α^ )
    # ΔY = α^ / ω   - The amount of baseTokens required to completely offset alphaDecay.
 
@@ -151,7 +151,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    ```
    ΔRo = (Ro/(1 - γ)) * γ
    where,
-   # ΔRo - The amount of tokens the liquidity provider recieves.
+   # ΔRo - The amount of tokens the liquidity provider receives.
    # γ = ΔX / X / 2 * ( ΔX / β^ )
    # ΔX = α - X   - The amount of quoteTokens required to completely offset betaDecay(and be extension alphaDecay).
    # β^ = ΔX  / ω
@@ -243,15 +243,15 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 
    They can also be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
 
-3. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider recieves `ΔRo`(liquidity tokens) that takes into account both the entires.
+3. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
    ```
    ΔRo = ΔRo(SAE) + ΔRo(DAE)
    where,
-   # ΔRo(SAE) - The liquidity tokens recieved due to the SingleAssetEntry
-   # ΔRo(SAE) - The liquidity tokens recieved due to the DoubleAssetEntry
+   # ΔRo(SAE) - The liquidity tokens received due to the SingleAssetEntry
+   # ΔRo(SAE) - The liquidity tokens received due to the DoubleAssetEntry
    ```
 
    > Note: In `PartialSingleAndDoubleAssetEntry` it is possible that the user might end up with a certain amount of unused `quoteToken` or `baseToken`, This is because in the presence of `AlphaDecay (α^)` the `SingleAssetEntry` uses up a certain amount of `baseToken` and then the remaining amount of which is used along with an equivalent amount of `quoteToken` for the `DoubleAssetEntry`, the value of which could be lower than the amount the liquidity provider wanted to provide.
@@ -259,7 +259,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 ## Redemption of liquidity Tokens `ΔRo`
 
 Liquidity tokens increase in value due to accrual of trading fees, and can be exchanged for equivalent amounts of `quoteToken` and `baseToken`.
-The amount of `quoteToken` and `baseToken` recieved is given by:
+The amount of `quoteToken` and `baseToken` received is given by:
 
 ```
 ΔX = α * ΔRo / Ro
@@ -268,7 +268,7 @@ The amount of `quoteToken` and `baseToken` recieved is given by:
 where,
 # ΔRo - The amount of liquidity tokens the liquidity provider wants to exchange
 # ΔX - The amount of quoteToken the liquidity provider receives
-# ΔY - The amount of baseTokens the liquidity provider recieves
+# ΔY - The amount of baseTokens the liquidity provider receives
 # α - The balance of quoteToken currently in the exchange
 # β - The balance of baseToken currently in the exchange
 
@@ -334,7 +334,7 @@ function removeLiquidity(
 
 ## A complete example
 
-This example is to illustrate all the concepts in one series of hyptothetical(but plausible) chain of events
+This example is to illustrate all the concepts in one series of hypothetical (but plausible) chain of events
 
 ```
   Liquidity provider #1 provides 1000000 quoteTokens and 1000000 baseTokens.
@@ -350,10 +350,10 @@ This example is to illustrate all the concepts in one series of hyptothetical(bu
     BetaDecay = 1000000 - 1000000 = 0
     deltaRo = -1000000  (Negative sign indicates that it is going out of the system)
     Ro = 1000000 ( because deltaY/Y = 1 )
-  Liquidity provider #1 has now recieved 1000000 Ro.
+  Liquidity provider #1 has now received 1000000 Ro.
 ----------------------------------------------------------------------------------------------------------------
 Now a participant(Swapper #1)comes along and wants to swap 10000 base tokens for quoteTokens.
-Swapper #1 recieves deltaX quoteTokens, where:
+Swapper #1 receives deltaX quoteTokens, where:
   deltaY = 10000
   X'  = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
@@ -393,7 +393,7 @@ Now let's assume a positive rebase occurs such that there are now 25% more `quot
   (Note: NOn zero alphaDecay and Omega is no longer equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
 Now a another participant (Swapper #2) comes along and wants to swap 10000 base tokens for quoteTokens.
-Swapper #2 recieves deltaX quoteTokens, where:
+Swapper #2 receives deltaX quoteTokens, where:
   deltaY = 10000
   X' = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
@@ -417,7 +417,7 @@ Therefore, post 2nd swap, the state of the AMM is:
   AlphaDecay = 11497532.1049140073
   BetaDecay = 0
   Ro = 1000000
-  (Note: The swap was unaffected by the occurence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
+  (Note: The swap was unaffected by the occurrence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
 Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of baseTokens required to be supplied to the AMM are deltaY, where:
 
@@ -463,15 +463,15 @@ Therefore at the end of the SingleAssetEntry the state of the AMM is:
   (Note: Omega ~= Sigma, which is expected behaviour)
 
 -------------------------------------------------------------------------------------------------------------------
-Now, liquidity provider #2 decides to withdraw all of his liquidity, he recieves a certain amount of quoteTokens and baseTokens, given by:
+Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives a certain amount of quoteTokens and baseTokens, given by:
 
   deltaX = alpha * deltaRo / Ro
   deltaY = beta * deltaRo / Ro
 
   Where,
-    deltaX - The amount of quoteTokens recieved
+    deltaX - The amount of quoteTokens received
     deltaY - The amount of baseTokens received
-    deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initialy recieved
+    deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initially received
 
   Hence we get,
     deltaRo = (-1) * 1205617.69142946611 = -1205617.69142946611
@@ -504,20 +504,20 @@ Now, liquidity provider #2 decides to withdraw all of his liquidity, he recieves
     alphaDecay = 0
     betaDecay = 0
     Ro = 1000000
-  And LP #2 has recieved,
+  And LP #2 has received,
     quoteTokens = 6820618.17702733711
     baseTokens = 7095751.66930142707
 
 -------------------------------------------------------------------------------------------------------------------
-Now, liquidity provider #1 decides to withdraw all of his liquidity, he recieves a certain amount of quoteTokens and baseTokens, given by:
+Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives a certain amount of quoteTokens and baseTokens, given by:
 
   deltaX = alpha * deltaRo / Ro
   deltaY = beta * deltaRo / Ro
 
   Where,
-    deltaX - The amount of quoteTokens recieved
+    deltaX - The amount of quoteTokens received
     deltaY - The amount of baseTokens received
-    deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initialy recieved
+    deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initially received
 
   Hence we get,
     deltaRo = (-1) * 1000000 = -1000000
@@ -525,7 +525,7 @@ Now, liquidity provider #1 decides to withdraw all of his liquidity, he recieves
     deltaY = 5885573.61072580073 * (-1000000)/1000000 = -5885573.61072580073
     (Note: (-1) is because the  deltaRo is being redeemed for underlying values of deltaX and deltaY)
 
-  Hence LP#1 recieves 5657364.04294161189 amount of quoteTokens and 5885573.61072580073 amount of baseTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
+  Hence LP#1 receives 5657364.04294161189 amount of quoteTokens and 5885573.61072580073 amount of baseTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
 
   LP#1 initial v final state:
   quoteTokens -> final - initial = 5657364.04294161189 - 1000000 = 4657364.04294161189
