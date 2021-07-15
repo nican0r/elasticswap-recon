@@ -48,7 +48,7 @@ library MathLib {
      * @return uint256 wad value (decimal with 18 digits of precision)
      */
     function wMul(uint256 a, uint256 b) public pure returns (uint256) {
-        return (a * b) + (WAD / 2) / WAD;
+        return ((a * b) + (WAD / 2)) / WAD;
     }
 
     /**
@@ -145,16 +145,22 @@ library MathLib {
         // gamma = deltaY / Y' / 2 * (deltaX / alphaDecay')
         uint256 wGamma =
             wDiv(
-                wMul(
-                    wDiv(_tokenQtyAToAdd, _internalTokenAReserveQty),
-                    _tokenBDecayChange
+                (
+                    wMul(
+                        wDiv(_tokenQtyAToAdd, _internalTokenAReserveQty),
+                        _tokenBDecayChange * WAD
+                    )
                 ),
                 _tokenBDecay
             ) /
                 WAD /
                 2;
+
         liquidityTokenQty =
-            (wDiv(_totalSupplyOfLiquidityTokens, WAD - wGamma) * wGamma) /
+            wDiv(
+                wMul(_totalSupplyOfLiquidityTokens * WAD, wGamma),
+                WAD - wGamma
+            ) /
             WAD;
     }
 
