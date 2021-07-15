@@ -337,7 +337,7 @@ function removeLiquidity(
 This example is to illustrate all the concepts in one series of hyptothetical(but plausible) chain of events
 
 ```
-  Liquidity provider #1 provides 100 quoteTokens and 100 baseTokens.
+  Liquidity provider #1 provides 1000000 quoteTokens and 1000000 baseTokens.
   Therefore,
     X = 1000000
     Alpha = 1000000
