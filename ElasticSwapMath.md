@@ -144,7 +144,6 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    # γ = ΔY / Y / 2 * ( ΔX / α^ )
    # ΔY = α^ / ω   - The amount of baseTokens required to completely offset alphaDecay.
 
-   ///deltaX = betaDecay(~ alpdaDecay * w) / w
    ```
 
    When there is `betaDecay`:
@@ -156,8 +155,8 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    # γ = ΔX / X / 2 * ( ΔX / β^ )
    # ΔX = α - X   - The amount of quoteTokens required to completely offset betaDecay(and be extension alphaDecay).
    # β^ = ΔX  / ω
-   TODO: Add BetaDecay version as well
-   dx = alpha - x => betaDecay = dx * iW
+
+   (dx = alpha - x => betaDecay = dx * iW)
    ///deltaX = betaDec
    ```
 
@@ -340,79 +339,89 @@ This example is to illustrate all the concepts in one series of hyptothetical(bu
 ```
   Liquidity provider #1 provides 100 quoteTokens and 100 baseTokens.
   Therefore,
-    X = 100
-    Alpha = 100
-    Y = 100
-    Beta = 100
-    K = 10000
-    Omega = 100/100 = 1
-    Sigma = 100/100 = 1
-    AlphaDecay = 100 - 100 = 0
-    BetaDecay = 100 - 100 = 0
-    deltaRo = Ro = 100 ( because deltaY/Y = 1 )
-
-  Liquidity provider #1 has now recieved 100 Ro.
+    X = 1000000
+    Alpha = 1000000
+    Y = 1000000
+    Beta = 1000000
+    K = 1000000000000
+    Omega = 1000000/1000000 = 1
+    Sigma = 1000000/1000000 = 1
+    AlphaDecay = 1000000 - 1000000 = 0
+    BetaDecay = 1000000 - 1000000 = 0
+    deltaRo = -1000000  (Negative sign indicates that it is going out of the system)
+    Ro = 1000000 ( because deltaY/Y = 1 )
+  Liquidity provider #1 has now recieved 1000000 Ro.
 ----------------------------------------------------------------------------------------------------------------
-Now a participant(Swapper #1)comes along and wants to swap 10 base tokens for quoteTokens.
+Now a participant(Swapper #1)comes along and wants to swap 10000 base tokens for quoteTokens.
 Swapper #1 recieves deltaX quoteTokens, where:
-  deltaY = 10
+  deltaY = 10000
   X'  = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
-  X' = 10000 /(100 + 10 -(10*0.003)) = 90.933891061198508684
-  deltaX = 90.933891061198508684 - 100 = -9.066108938801491316 (The negative sign simply indicates that the quoteTokens are going to the   swapper )
-  Y' = Y + deltaY = 100 + 10 = 110
-  alpha' = alpha + deltaAlpha = 100 + (-9.066108938801491316) = 90.933891061198508684 ( Note: deltaX = deltaAlpha for swap events)
-  beta' = beta + betaDecay = 100 + 10 = 110 ( Note: deltaY = deltaBeta for swap events)
+  X' = 1000000000000 /(1000000 + 10000 -(10000*0.003)) = 990128.419656029387
+  deltaX = 990128.419656029387 - 1000000 = -9871.580343970613 (The negative sign simply indicates that the quoteTokens are going to the   swapper )
+  Y' = Y + deltaY = 1000000 + 10000 = 1010000
+  alpha' = alpha + deltaAlpha = 1000000 + (-9871.580343970613) = 990128.419656029387 ( Note: deltaX = deltaAlpha for swap events)
+  beta' = beta + betaDecay = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
+  alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
+  betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
+  K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
 
 Therefore, post 1st swap, the state of the AMM is:
-  X = 90.933891061198508684
-  Alpha = 90.933891061198508684
-  Y = 110
-  Beta = 110
-  Omega = 90.933891061198508684/110 = 0.826671736919986442
-  Sigma = 90.933891061198508684/110 = 0.826671736919986442
-  AlphaDecay = 0
-  BetaDecay = 0
-  Ro = 100
+  X = 990128.419656029387
+  Alpha = 9990128.419656029387
+  Y = 1010000
+  Beta = 1010000
+  Omega = 990128.419656029387/1010000 = 0.98032516797626672
+  Sigma = 990128.419656029387/1010000 = 0.98032516797626672
+  AlphaDecay = 990128.419656029387 - 990128.419656029387 = 0
+  BetaDecay = 1010000 - 1010000 =  0
+  K = X*Y = 990128.419656029387 * 1010000 = 1000029703852.58968
+  Ro = 1000000
   (Note: Omega is equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
 Now let's assume a positive rebase occurs such that there are now 25% more `quoteTokens`, as a result of which:
-  Alpha = 1.25 * 90.933891061198508684 = 113.667363826498135855
-  X = 90.933891061198508684
-  alphaDecay = alpha - X = 113.667363826498135855 - 90.933891061198508684 = 22.733472765299627171
-  Beta = 110
-  Y = 110
-  betaDecay = beta - Y = 110 - 110 = 0
-  Omega = X/Y = 90.933891061198508684/110 = 0.826671736919986442
-  Sigma = Alpha/Beta = 113.667363826498135855 / 110 = 1.033339671149983053
-  Ro = 100
-  (Note: Omega is no longer equal to Sigma)
+  Alpha = 1.25 * 9990128.419656029387 = 12487660.5245700367
+  X = 990128.419656029387
+  alphaDecay = alpha - X = 12487660.5245700367 - 990128.4196560293874 = 11497532.1049140073
+  Beta = 1010000
+  Y = 1010000
+  K = X*Y = 990128.419656029387 * 1010000 = 1000029703852.58968
+  betaDecay = beta - Y = 1010000 - 1010000 =  0
+  Omega = X/Y = 990128.419656029387/1010000 = 0.98032516797626672
+  Sigma = Alpha/Beta = 12487660.5245700367 / 1010000 = 12.364020321356472
+  Ro = 1000000
+  (Note: NOn zero alphaDecay and Omega is no longer equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
-Now a another participant (Swapper #2) comes along and wants to swap 10 base tokens for quoteTokens.
+Now a another participant (Swapper #2) comes along and wants to swap 10000 base tokens for quoteTokens.
 Swapper #2 recieves deltaX quoteTokens, where:
-  deltaY = 10
+  deltaY = 10000
   X' = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
-  X' = 10000 / (110 + 10 - (10*0.003)) =  83.354171876302408936
-  deltaX = 83.354171876302408936 - 90.933891061198508684 = -7.579719184896099748
-  Y' = Y + deltaY = 110 + 10 = 120
-  alpha' = 113.667363826498135855 + (-7.579719184896099748) = 106.087644641602036107
-  beta' = 110 + 10 = 120
+  X' = 1000029703852.58968 / (1010000 + 10000 - (10000*0.003)) =  980450.115054942479
+  deltaX = 980450.115054942479 - 990128.419656029387 = -9678.304601086908
+  Y' = Y + deltaY = 1010000 + 10000 = 1020000
+  alpha' = alpha + deltaAlpha = 12487660.5245700367 + (-9678.304601086908) = 12477982.2199689498
+  alphaDecay' = alpha' - x' = 12477982.2199689498 - 980450.115054942479 = 11497532.1049140073
+  beta' = 1010000 + 10000 = 1020000
+  betaDecay' = 1020000 - 1020000 = 0
+  K' = X' * Y' = 980450.115054942479 * 1020000 = 1000059117356.04133
 
 Therefore, post 2nd swap, the state of the AMM is:
-  X = 83.354171876302408936
-  Alpha = 106.087644641602036107
-  Y = 120
-  Beta = 120
-  Omega = 83.354171876302408936 / 120 = 0.694618098969186741
-  Sigma = 106.087644641602036107 / 120 = 0.884063705346683634
-  AlphaDecay = 22.733472765299627171
+  X = 980450.115054942479
+  Alpha = 12477982.2199689498
+  Y = 1020000
+  Beta = 1020000
+  K = X * Y = 980450.115054942479 * 1020000 = 1000059117356.04133
+  Omega = 980450.1150549424796 / 1020000 = 0.961225602995041647
+  Sigma = 12477982.2199689498 / 1020000 = 12.2333159019303429
+  AlphaDecay = 11497532.1049140073
   BetaDecay = 0
-  Ro = 100
+  Ro = 1000000
   (Note: The swap was unaffected by the occurence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
 Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of baseTokens required to be supplied to the AMM are deltaY, where:
-  deltaY = alphaDecay / Omega = 22.733472765299627171 / 0.694618098969186741 = 32.728016731835955266
+
+  deltaY = alphaDecay / Omega = 11497532.1049140073 / 0.961225602995041647 = 11961325.2800272278
 
 For which the liquidity tokens issued to liquidity provider #2 (deltaRo) are given by:
   deltaRo = (Ro/(1 - gamma)) * gamma
@@ -422,34 +431,36 @@ For which the liquidity tokens issued to liquidity provider #2 (deltaRo) are giv
       deltaX = deltaY * Omega,
 
   Therefore,
-  deltaX =  32.728016731835955266 * 0.694618098969186741 = 22.733472765299627170603564498876328106
-  gamma =  32.728016731835955266 / 120 / 2 * (22.733472765299627170603564498876328106 / 22.733472765299627171 ) = 0.136366736382649814
-  deltaRo = (100 / ( 1- 0.136366736382649814) * 0.136366736382649814 = 15.789889311520288556
-  X' = X + deltaX = 83.354171876302408936 + 22.733472765299627170603564498876328106 = 106.087644641602036107
-  Y' = Y + deltaY = 120 + 32.728016731835955266 = 152.728016731835955266
-  alphaDecay = alpha - X = 106.087644641602036107 - 106.087644641602036107 = 0
+  deltaX =  11961325.2800272278 * 0.961225602995041647 = 11497532.1049140074
+  gamma =  11961325.2800272278 / 1020000 / 2 * (11497532.1049140074 / 11497532.1049140073 ) = 5.86339474511138623
+  deltaRo = (1000000 / ( 1- 5.86339474511138623) * 5.86339474511138623 = -1205617.69142946611 (Negative sign indicates that it is going out of the system)
+  X' = X + deltaX = 980450.115054942479 + 11497532.1049140074 = 12477982.2199689495
+  Y' = Y + deltaY = 1020000 + 11961325.2800272278 = 12981325.2800272278
+  deltaAlpha = 0
+  alpha' = alpha + deltaAlpha = 12477982.2199689498 + 0
+  deltaBeta = 11961325.2800272278
+  alphaDecay' = alpha' - X' = 12477982.2199689498 - 12477982.2199689495 = 0.0000000003 ~ 0 (Rounding)
   betaDecay = 0
-  alpha' = alpha + deltaAlpha = 106.087644641602036107 + 0
-  beta' = beta + deltaBeta = 120 + 32.728016731835955266 = 152.728016731835955266
-  Sigma' = alpha' / beta' = 106.087644641602036107/152.728016731835955266 = 0.694618098969186741
-  K' = X' * Y' = 106.087644641602036107 * 152.728016731835955266 = 16202.555565863662794389
-  Omega' = X' / Y' = 106.087644641602036107/152.728016731835955266 = 0.694618098969186741
-  Ro' = Ro + deltaRo = 100 + 15.789889311520288556 = 115.789889311520288556
+  beta' = beta + deltaBeta = 1020000 + 11961325.2800272278 = 12981325.2800272278
+  Sigma' = alpha' / beta' = 12477982.2199689498/12981325.2800272278 = 0.961225602995041639
+  K' = X' * Y' = 12477982.2199689495 * 12981325.2800272278 = 161980746035813.193
+  Omega' = X' / Y' = 12477982.2199689495/12981325.2800272278 = 0.961225602995041616
+  Ro' = Ro + deltaRo = 1000000 + 1205617.69142946611 = 2205617.69142946611
 
 
 
 Therefore at the end of the SingleAssetEntry the state of the AMM is:
-  X = 106.087644641602036107
-  Y = 152.728016731835955266
-  K = 16202.555565863662794389
-  Alpha = 106.087644641602036107
-  Beta = 152.728016731835955266
-  Omega = 0.694618098969186741
-  Sigma = 0.694618098969186741
-  alphaDecay = 0 .694618098969186741
+  X = 12477982.2199689495
+  Y = 12981325.2800272278
+  K = 161980746035813.193
+  Alpha = 12477982.219968949
+  Beta = 12981325.2800272278
+  Omega = 0.961225602995041616
+  Sigma = 0.961225602995041639
+  alphaDecay = 0
   betaDecay = 0
-  Ro = 115.789889311520288556
-  (Note: Omega == Sigma, which is expected behaviour)
+  Ro = 2205617.69142946611
+  (Note: Omega ~= Sigma, which is expected behaviour)
 
 -------------------------------------------------------------------------------------------------------------------
 Now, liquidity provider #2 decides to withdraw all of his liquidity, he recieves a certain amount of quoteTokens and baseTokens, given by:
@@ -463,34 +474,39 @@ Now, liquidity provider #2 decides to withdraw all of his liquidity, he recieves
     deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initialy recieved
 
   Hence we get,
-    deltaRo = (-1) * 15.789889311520288556 = -15.789889311520288556
-    deltaX = 106.087644641602036107 * (-15.789889311520288556) / 115.789889311520288556 = -14.466825870297576964
-    deltaY = 152.728016731835955266 * (-15.789889311520288556) / 115.789889311520288556 = -20.827021195915203702
+    deltaRo = (-1) * 1205617.69142946611 = -1205617.69142946611
+    deltaX = 12477982.219968949 * (-1205617.69142946611) / 2205617.69142946611 = -6820618.17702733711
+    deltaY = 12981325.2800272278 * (-1205617.69142946611) / 2205617.691429466116 = -7095751.66930142707
     (Note: (-1) is because the  deltaRo is being redeemed for underlying values of deltaX and deltaY)
+    deltaX = deltaAlpha
+    deltaY = deltaBeta
 
-    X' = X + deltaX = 106.087644641602036107 + (-14.466825870297576964) = 91.620818771304459143
-    Y' = Y + deltaY = 152.728016731835955266 + (-20.827021195915203702) = 131.900995535920751564
-    Ro' = Ro + deltaRo = 115.789889311520288556 + (- 15.789889311520288556) = 100
-    alpha' = alpha + deltaAlpha = 106.087644641602036107 + (-14.466825870297576964) = 91.620818771304459143
-    beta' = beta + deltaBeta = 152.728016731835955266 + (-20.827021195915203702) = 131.900995535920751564
-    Sigma' = 91.620818771304459143/ 131.900995535920751564 = 0.694618098969186741
-    Omega' = X'/Y' = 91.620818771304459143/ 131.900995535920751564 = 0.694618098969186741
+    X' = X + deltaX = 12477982.2199689495 + (-6820618.17702733711) = 5657364.04294161239
+    Y' = Y + deltaY = 12981325.2800272278 + (-7095751.669301427072) = 5885573.61072580073
+    K' = X'* Y' = 5657364.04294161239 * 5885573.61072580073 = 33296832517406.1796
+    Ro' = Ro + deltaRo = 2205617.69142946611 + (-1205617.69142946611) = 1000000
+    alpha' = alpha + deltaAlpha = 12477982.219968949 + (-6820618.17702733711) = 5657364.04294161189
+    beta' = beta + deltaBeta = 12981325.2800272278 + (-7095751.66930142707) = 5885573.61072580073
+    Sigma' = alpha'/ beta' = 5657364.04294161189 / 5885573.61072580073 = 0.961225602995041573
+    Omega' = X'/Y' = 5657364.04294161239/ 5885573.61072580073 = 0.961225602995041658
+    alphaDecay' = alpha' - X' = 5657364.04294161189 - 5657364.04294161239 = -0.0000000005  = ~0 (rounding)
+    betaDecay = beta' - Y' =  5885573.61072580073 - 5885573.61072580073 = 0
     (Note: Omega' = Omega = Sigma' = Sigma , this is expected behaviour)
 
   Therefore at the end of the redemption of liquidity tokens event the state of the AMM is:
-    X = 91.620818771304459143
-    Y = 131.900995535920751564
-    K = 91.620818771304459143 * 131.900995535920751564 = 12084.877207751233663725
-    alpha = 91.620818771304459143
-    beta = 131.900995535920751564
-    Omega = 91.620818771304459143/ 131.900995535920751564 = 0.694618098969186741
-    Sigma = 91.620818771304459143/ 131.900995535920751564 = 0.694618098969186741
-    alphaDecay = alpha - X = 91.620818771304459143 - 91.620818771304459143 = 0
-    betaDecay = beta - Y = 131.900995535920751564 - 131.900995535920751564 = 0
-    Ro = 100
+    X = 5657364.04294161239
+    Y = 5885573.61072580073
+    K = 33296832517406.179
+    alpha = 5657364.04294161189
+    beta = 5885573.61072580073
+    Omega = 0.961225602995041658
+    Sigma =  0.961225602995041573
+    alphaDecay = 0
+    betaDecay = 0
+    Ro = 1000000
   And LP #2 has recieved,
-    quoteTokens = 14.466825870297576964
-    baseTokens = 20.827021195915203702
+    quoteTokens = 6820618.17702733711
+    baseTokens = 7095751.66930142707
 
 -------------------------------------------------------------------------------------------------------------------
 Now, liquidity provider #1 decides to withdraw all of his liquidity, he recieves a certain amount of quoteTokens and baseTokens, given by:
@@ -504,12 +520,16 @@ Now, liquidity provider #1 decides to withdraw all of his liquidity, he recieves
     deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initialy recieved
 
   Hence we get,
-    deltaRo = (-1) * 100 = -100
-    deltaX = 91.620818771304459143 * (-100)/100 = -91.620818771304459143
-    deltaY = 131.90099553592075156 * (-100)/100 = -131.90099553592075156
+    deltaRo = (-1) * 1000000 = -1000000
+    deltaX = 5657364.04294161189 * (-1000000)/1000000 = -5657364.04294161189
+    deltaY = 5885573.61072580073 * (-1000000)/1000000 = -5885573.61072580073
     (Note: (-1) is because the  deltaRo is being redeemed for underlying values of deltaX and deltaY)
 
-  Hence LP#1 recieves 91.620818771304459143 amount of quoteTokens and 131.90099553592075156 amount of baseTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
+  Hence LP#1 recieves 5657364.04294161189 amount of quoteTokens and 5885573.61072580073 amount of baseTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
+
+  LP#1 initial v final state:
+  quoteTokens -> final - initial = 5657364.04294161189 - 1000000 = 4657364.04294161189
+  baseTokens -> final - initial = 5885573.61072580073 - 100000 = 5785573.61072580073
 
 
 ```
