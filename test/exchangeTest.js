@@ -634,6 +634,124 @@ describe("Exchange", () => {
           .swapBaseTokenForQuoteToken(swapAmount, 1, expiration)
       ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY");
     });
+
+    it("Should handle unexpected increase in base tokens", async () => {
+      // a user could send us base tokens via ERC20 transfer incorrectly
+      // we should ensure that this doesn't affect/break anything
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send users tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // confirm no balance before trade.
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(0);
+      expect(await baseToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      let [, baseTokenReserveQty] = await exchange.internalBalances();
+
+      let pricingConstantK = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.mul(
+        (await exchange.internalBalances()).baseTokenReserveQty
+      );
+
+      const quoteTokenQtyReserveAfterTrade = pricingConstantK.div(
+        baseTokenReserveQty.add(swapAmount).sub(expectedFee)
+      );
+
+      const quoteTokenQtyExpected = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.sub(quoteTokenQtyReserveAfterTrade);
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(
+        (await quoteToken.balanceOf(trader.address)).toNumber()
+      ).to.approximately(Math.floor(quoteTokenQtyExpected), 1);
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount
+      );
+
+      // calculate expected value for second identical swap.
+      baseTokenReserveQty = (await exchange.internalBalances())
+        .baseTokenReserveQty;
+
+      pricingConstantK = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.mul(
+        (await exchange.internalBalances()).baseTokenReserveQty
+      );
+
+      const quoteTokenQtyReserveAfterTrade2 = pricingConstantK.div(
+        baseTokenReserveQty.add(swapAmount).sub(expectedFee)
+      );
+
+      const quoteTokenQtyExpected2 = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.sub(quoteTokenQtyReserveAfterTrade2);
+      // send additional base tokens to the exchange. We send a
+      // crazy balance to magnify anything that would change
+      // based on this.
+      await baseToken.transfer(exchange.address, amountToAdd * 100);
+
+      expect(await baseToken.balanceOf(exchange.address)).to.equal(
+        baseTokenReserveQty.add(amountToAdd * 100)
+      );
+
+      // the below swap should still occur with all the same expected values.
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
+
+      expect(
+        (await quoteToken.balanceOf(trader.address)).toNumber()
+      ).to.approximately(
+        Math.floor(quoteTokenQtyExpected.add(quoteTokenQtyExpected2)),
+        2
+      );
+
+      expect(await baseToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount * 2
+      );
+    });
   });
 
   describe("swapQuoteTokenForBaseToken", () => {
@@ -1205,6 +1323,127 @@ describe("Exchange", () => {
           .connect(trader)
           .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration)
       ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_TOKEN_QTY");
+    });
+
+    it("Should handle unexpected increase in base tokens", async () => {
+      // a user could send us base tokens via ERC20 transfer incorrectly
+      // we should ensure that this doesn't affect/break anything
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send users tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // add approvals for exchange to trade their quote tokens
+      await quoteToken.connect(trader).approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // confirm no balance before trade.
+      expect(await baseToken.balanceOf(trader.address)).to.equal(0);
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      let [quoteTokenReserveQty] = await exchange.internalBalances();
+
+      let pricingConstantK = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.mul(
+        (await exchange.internalBalances()).baseTokenReserveQty
+      );
+
+      const baseTokenQtyReserveAfterTrade = pricingConstantK.div(
+        quoteTokenReserveQty.add(swapAmount).sub(expectedFee)
+      );
+
+      const baseTokenQtyExpected = (
+        await exchange.internalBalances()
+      ).baseTokenReserveQty.sub(baseTokenQtyReserveAfterTrade);
+
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(swapAmount, 1, expiration);
+
+      // confirm trade occurred at expected
+      expect(
+        (await baseToken.balanceOf(trader.address)).toNumber()
+      ).to.approximately(Math.floor(baseTokenQtyExpected), 1);
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount
+      );
+
+      // calculate expected value for second identical swap.
+      quoteTokenReserveQty = (await exchange.internalBalances())
+        .quoteTokenReserveQty;
+
+      pricingConstantK = (
+        await exchange.internalBalances()
+      ).quoteTokenReserveQty.mul(
+        (await exchange.internalBalances()).baseTokenReserveQty
+      );
+
+      const baseTokenQtyReserveAfterTrade2 = pricingConstantK.div(
+        quoteTokenReserveQty.add(swapAmount).sub(expectedFee)
+      );
+
+      const baseTokenQtyExpected2 = (
+        await exchange.internalBalances()
+      ).baseTokenReserveQty.sub(baseTokenQtyReserveAfterTrade2);
+      // send additional base tokens to the exchange. We send a
+      // crazy balance to magnify anything that would change
+      // based on this.
+
+      await baseToken.transfer(exchange.address, amountToAdd * 100);
+      const expectedBalance = (
+        await exchange.internalBalances()
+      ).baseTokenReserveQty.add(amountToAdd * 100);
+      expect(await baseToken.balanceOf(exchange.address)).to.equal(
+        expectedBalance
+      );
+
+      // the below swap should still occur with all the same expected values.
+      await exchange
+        .connect(trader)
+        .swapQuoteTokenForBaseToken(swapAmount, 1, expiration);
+
+      expect(
+        (await baseToken.balanceOf(trader.address)).toNumber()
+      ).to.approximately(
+        Math.floor(baseTokenQtyExpected.add(baseTokenQtyExpected2)),
+        2
+      );
+
+      expect(await quoteToken.balanceOf(trader.address)).to.equal(
+        amountToAdd - swapAmount * 2
+      );
     });
   });
 
