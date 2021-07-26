@@ -219,7 +219,7 @@ library MathLib {
 
         require(
             _baseTokenQtyMin < maxBaseTokenQty,
-            "Exchange: INSUFFICIENT_DECAY"
+            "MathLib: INSUFFICIENT_DECAY"
         );
 
         if (_baseTokenQtyDesired > maxBaseTokenQty) {
@@ -236,7 +236,7 @@ library MathLib {
 
         require(
             quoteTokenQtyDecayChange > 0,
-            "Exchange: INSUFFICIENT_CHANGE_IN_DECAY"
+            "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
         );
         //x += alphaDecayChange
         //y += deltaBeta
@@ -277,7 +277,7 @@ library MathLib {
             _internalBalances.quoteTokenReserveQty - _quoteTokenReserveQty;
         require(
             _quoteTokenQtyMin < maxQuoteTokenQty,
-            "Exchange: INSUFFICIENT_DECAY"
+            "MathLib: INSUFFICIENT_DECAY"
         );
 
         if (_quoteTokenQtyDesired > maxQuoteTokenQty) {
@@ -306,7 +306,7 @@ library MathLib {
 
         require(
             baseTokenQtyDecayChange > 0,
-            "Exchange: INSUFFICIENT_CHANGE_IN_DECAY"
+            "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
         );
 
         // we can now calculate the total amount of base token decay
@@ -316,7 +316,7 @@ library MathLib {
         // this may be redundant based on the above math, but will check to ensure the decay wasn't so small
         // that it was <1 and rounded down to 0 saving the caller some gas
         // also could fix a potential revert due to div by zero.
-        require(baseTokenDecay > 0, "Exchange: NO_BASE_DECAY");
+        require(baseTokenDecay > 0, "MathLib: NO_BASE_DECAY");
 
         // we are not changing anything about our internal accounting here. We are simply adding tokens
         // to make our internal account "right"...or rather getting the external balances to match our internal
@@ -427,12 +427,12 @@ library MathLib {
 
                 require(
                     quoteTokenQty >= _quoteTokenQtyMin,
-                    "Exchange: INSUFFICIENT_QUOTE_QTY"
+                    "MathLib: INSUFFICIENT_QUOTE_QTY"
                 );
 
                 require(
                     baseTokenQty >= _baseTokenQtyMin,
-                    "Exchange: INSUFFICIENT_BASE_QTY"
+                    "MathLib: INSUFFICIENT_BASE_QTY"
                 );
             } else {
                 // the user is just doing a simple double asset entry / providing both quote and base.
@@ -453,6 +453,15 @@ library MathLib {
             }
         } else {
             // this user will set the initial pricing curve
+            require(
+                _quoteTokenQtyDesired > 0,
+                "MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED"
+            );
+            require(
+                _baseTokenQtyDesired > 0,
+                "MathLib: INSUFFICIENT_BASE_QTY_DESIRED"
+            );
+
             quoteTokenQty = _quoteTokenQtyDesired;
             baseTokenQty = _baseTokenQtyDesired;
             liquidityTokenQty = _baseTokenQtyDesired;
@@ -506,7 +515,7 @@ library MathLib {
             // user has to provide less than their desired amount
             require(
                 requiredBaseTokenQty >= _baseTokenQtyMin,
-                "Exchange: INSUFFICIENT_BASE_QTY"
+                "MathLib: INSUFFICIENT_BASE_QTY"
             );
             quoteTokenQty = _quoteTokenQtyDesired;
             baseTokenQty = requiredBaseTokenQty;
@@ -529,7 +538,7 @@ library MathLib {
 
             require(
                 requiredQuoteTokenQty >= _quoteTokenQtyMin,
-                "Exchange: INSUFFICIENT_QUOTE_QTY"
+                "MathLib: INSUFFICIENT_QUOTE_QTY"
             );
             quoteTokenQty = requiredQuoteTokenQty;
             baseTokenQty = _baseTokenQtyDesired;
@@ -553,14 +562,9 @@ library MathLib {
         Exchange.InternalBalances storage _internalBalances
     ) public returns (uint256 quoteTokenQty) {
         require(
-            _baseTokenQty > 0 && _minQuoteTokenQty > 0,
-            "Exchange: INSUFFICIENT_TOKEN_QTY"
-        );
-
-        require(
             _quoteTokenReserveQty > 0 &&
                 _internalBalances.quoteTokenReserveQty > 0,
-            "Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
         );
 
         // check to see if we have experience base token decay / a rebase down event
@@ -593,7 +597,7 @@ library MathLib {
 
         require(
             quoteTokenQty > _minQuoteTokenQty,
-            "Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
         );
 
         _internalBalances.quoteTokenReserveQty -= quoteTokenQty;
@@ -608,7 +612,7 @@ library MathLib {
     ) public returns (uint256 baseTokenQty) {
         require(
             _quoteTokenQty > 0 && _minBaseTokenQty > 0,
-            "Exchange: INSUFFICIENT_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_TOKEN_QTY"
         );
 
         baseTokenQty = calculateQtyToReturnAfterFees(
@@ -620,7 +624,7 @@ library MathLib {
 
         require(
             baseTokenQty > _minBaseTokenQty,
-            "Exchange: INSUFFICIENT_BASE_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
         _internalBalances.quoteTokenReserveQty += _quoteTokenQty;

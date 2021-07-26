@@ -588,7 +588,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapBaseTokenForQuoteToken(swapAmount, 1, expiration)
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY");
 
       // create liquidity
       await exchange
@@ -632,7 +632,61 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapBaseTokenForQuoteToken(swapAmount, 1, expiration)
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY");
+    });
+
+    it("Should revert when user supplied minimums are zero", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      const swapAmount = 100000;
+
+      await expect(
+        exchange
+          .connect(trader)
+          .swapBaseTokenForQuoteToken(swapAmount, 0, expiration)
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_TOKEN_QTY");
+
+      await expect(
+        exchange.connect(trader).swapBaseTokenForQuoteToken(0, 1, expiration)
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_TOKEN_QTY");
+
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
     });
 
     it("Should handle unexpected increase in base tokens", async () => {
@@ -821,6 +875,99 @@ describe("Exchange", () => {
       )
         .to.emit(exchange, "Swap")
         .withArgs(trader.address, 0, swapAmount, quoteTokenQtyExpected, 0);
+    });
+
+    it("Should revert when _baseTokenQty is 0", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+
+      await expect(
+        exchange.connect(trader).swapBaseTokenForQuoteToken(0, 1, expiration)
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_TOKEN_QTY");
+    });
+
+    it("Should revert when _minQuoteTokenQty is not available", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken.connect(trader).approve(exchange.address, amountToAdd);
+      // confirm no balance before trade.
+
+      // trader executes the first trade, our pricing should be ~1:1 currently minus fees
+      // enforce a much different ratio, which should revert.
+      const swapAmount = 100000;
+      await expect(
+        exchange
+          .connect(trader)
+          .swapBaseTokenForQuoteToken(swapAmount, swapAmount * 2, expiration)
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY");
+
+      // this should not revert since we aren't asking for a large min quote token qty back
+      await exchange
+        .connect(trader)
+        .swapBaseTokenForQuoteToken(swapAmount, 1, expiration);
     });
   });
 
@@ -1351,7 +1498,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration)
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_TOKEN_QTY");
 
       // create liquidity
       await exchange
@@ -1392,7 +1539,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapQuoteTokenForBaseToken(quoteTokenQtyToTrade, 1, expiration)
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_TOKEN_QTY");
     });
 
     it("Should handle unexpected increase in base tokens", async () => {
@@ -1584,6 +1731,47 @@ describe("Exchange", () => {
       )
         .to.emit(exchange, "Swap")
         .withArgs(trader.address, swapAmount, 0, 0, baseTokenQtyExpected);
+    });
+
+    it("Should revert when _quoteTokenQty is 0", async () => {
+      const amountToAdd = 1000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(liquidityProvider.address, amountToAdd);
+      await baseToken.transfer(liquidityProvider.address, amountToAdd);
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, amountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          amountToAdd,
+          amountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, amountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await quoteToken.connect(trader).approve(exchange.address, amountToAdd);
+
+      await expect(
+        exchange.connect(trader).swapQuoteTokenForBaseToken(0, 1, expiration)
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_TOKEN_QTY");
     });
   });
 
@@ -2730,7 +2918,7 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_DECAY");
 
       // we can do 2 more units, and should expect the same behavior since we are
       // still less than 1 full unit of decay in terms of our base tokens
@@ -2749,7 +2937,7 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_DECAY");
 
       // if we rebase down 1 more quote unit, now we should be able to add 1 unit of base token
       await quoteToken.transfer(exchange.address, 1);
@@ -2874,7 +3062,7 @@ describe("Exchange", () => {
         exchange
           .connect(liquidityProvider)
           .addQuoteTokenLiquidity(1, 1, liquidityProvider2.address, expiration)
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_DECAY");
 
       // the below call will succeed, but only because due to truncation
       // we don't actually require any base token assets to be added.
@@ -2885,7 +3073,7 @@ describe("Exchange", () => {
         .addLiquidity(1, 0, 1, 0, liquidityProvider2.address, expiration);
     });
 
-    it("Should revert if minimum base token amount isn't satisfied", async () => {
+    it("Should revert if minimum base token amount isn't satisfied when decay present", async () => {
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
       const liquidityProvider = accounts[1];
@@ -2940,16 +3128,70 @@ describe("Exchange", () => {
       await expect(
         exchange.connect(liquidityProvider2).addLiquidity(
           quoteTokenRebaseDownAmount,
-          1, // no base tokens
+          1,
           1,
           1, // expect this to revert since we will not be able to add any base tokens
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY");
     });
 
-    it("Should revert if minimum quote token amount isn't satisfied", async () => {
+    it("Should revert if minimum base token amount isn't satisfied when decay is not present", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // if we attempt to add with a base qty above expectation
+      // we should revert.
+      await expect(
+        exchange
+          .connect(liquidityProvider2)
+          .addLiquidity(5, 50, 1, 50, liquidityProvider2.address, expiration)
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY");
+    });
+
+    it("Should revert if minimum quote token amount isn't satisfied when decay is present", async () => {
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
       const liquidityProvider = accounts[1];
@@ -3004,7 +3246,56 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY");
+    });
+
+    it("Should revert if minimum quote token amount isn't satisfied when decay is not present", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider2)
+          .addLiquidity(20, 50, 15, 1, liquidityProvider2.address, expiration)
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY");
     });
 
     it("Should revert when _expirationTimestamp is expired", async () => {
@@ -3063,6 +3354,135 @@ describe("Exchange", () => {
       )
         .to.emit(exchange, "AddLiquidity")
         .withArgs(liquidityProvider.address, 10, 50);
+    });
+
+    it("Should revert if quoteTokenQtyDesired is 0 when no decay is present", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      // this will test the state before a pricing curve has been established.
+      await expect(
+        exchange.connect(liquidityProvider).addLiquidity(
+          0,
+          50,
+          1, // no quote tokens - should revert
+          1, // base token min
+          liquidityProvider.address,
+          expiration
+        )
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED");
+
+      // add tokens to a pricing curve is established.
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange.connect(liquidityProvider).addLiquidity(
+          0,
+          50,
+          1, // no quote tokens - should revert
+          1, // base token min
+          liquidityProvider.address,
+          expiration
+        )
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QTY");
+    });
+
+    it("Should revert if baseTokenQtyDesired is 0 when no decay is present", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      // this will test the state before a pricing curve has been established.
+      await expect(
+        exchange.connect(liquidityProvider).addLiquidity(
+          10,
+          0,
+          1, // no quote tokens - should revert
+          1, // base token min
+          liquidityProvider.address,
+          expiration
+        )
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY_DESIRED");
+
+      // add tokens to a pricing curve is established.
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .addLiquidity(10, 0, 1, 1, liquidityProvider.address, expiration)
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QTY");
     });
   });
 
@@ -3249,7 +3669,7 @@ describe("Exchange", () => {
       );
     });
 
-    it("Should revert addQuoteTokenLiquidity when _expirationTimestamp is expired", async () => {
+    it("Should revert when _expirationTimestamp is expired", async () => {
       const expiration = Math.round(new Date().getTime() / 1000 - 60 * 50); // 50 minutes in the past.
       const liquidityProvider = accounts[1];
 
@@ -3265,7 +3685,7 @@ describe("Exchange", () => {
       ).to.be.revertedWith("Exchange: EXPIRED");
     });
 
-    it("Should revert addQuoteTokenLiquidity when there is insufficient decay ", async () => {
+    it("Should revert when there is insufficient decay ", async () => {
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
       const liquidityProvider = accounts[1];
@@ -3322,7 +3742,71 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_DECAY");
+    });
+
+    it("Should revert when there is no base decay ", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      // if we attempt to add anything this should revert since there is no decay.
+      await expect(
+        exchange.connect(liquidityProvider2).addQuoteTokenLiquidity(
+          10,
+          5, // min 5 when we only have 2 tokens worth of decay.
+          liquidityProvider2.address,
+          expiration
+        )
+      ).to.be.revertedWith("Exchange: NO_BASE_DECAY");
+
+      // adding liquidity shouldn't change anything.
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // if we attempt to add anything this should revert since there is no decay.
+      await expect(
+        exchange.connect(liquidityProvider2).addQuoteTokenLiquidity(
+          10,
+          5, // min 5 when we only have 2 tokens worth of decay.
+          liquidityProvider2.address,
+          expiration
+        )
+      ).to.be.revertedWith("Exchange: NO_BASE_DECAY");
     });
 
     it("Should emit AddLiquidity event", async () => {
@@ -3391,6 +3875,75 @@ describe("Exchange", () => {
       )
         .to.emit(exchange, "AddLiquidity")
         .withArgs(liquidityProvider2.address, quoteTokenRebaseDownAmount, 0);
+    });
+
+    it("Should revert when _quoteTokenQtyDesired is 0", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // simulate a rebase down by sending tokens from our exchange contract away.
+      const quoteTokenRebaseDownAmount = 2;
+      await quoteToken.simulateRebaseDown(
+        exchange.address,
+        quoteTokenRebaseDownAmount
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider2)
+          .addQuoteTokenLiquidity(0, 1, liquidityProvider2.address, expiration)
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_CHANGE_IN_DECAY");
+
+      // confirm this tx succeeds
+      await exchange
+        .connect(liquidityProvider2)
+        .addQuoteTokenLiquidity(
+          quoteTokenRebaseDownAmount,
+          1,
+          liquidityProvider2.address,
+          expiration
+        );
     });
   });
 
@@ -3601,7 +4154,7 @@ describe("Exchange", () => {
       ).to.be.revertedWith("Exchange: NO_QUOTE_DECAY");
     });
 
-    it("Should revert addBaseTokenLiquidity when there is insufficient decay ", async () => {
+    it("Should revert when there is insufficient decay ", async () => {
       // create expiration 50 minutes from now.
       const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
       const liquidityProvider = accounts[1];
@@ -3661,10 +4214,73 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_DECAY");
     });
 
-    it("Should revert addBaseTokenLiquidity when _expirationTimestamp is expired", async () => {
+    it("Should revert when there is no decay ", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      // no decay present, should revert.
+      await expect(
+        exchange.connect(liquidityProvider2).addBaseTokenLiquidity(
+          400, // alphaDecay / omega = 40 / .2 = 200
+          205,
+          liquidityProvider2.address,
+          expiration
+        )
+      ).to.be.revertedWith("Exchange: NO_QUOTE_DECAY");
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // no decay present, should revert.
+      await expect(
+        exchange.connect(liquidityProvider2).addBaseTokenLiquidity(
+          400, // alphaDecay / omega = 40 / .2 = 200
+          205,
+          liquidityProvider2.address,
+          expiration
+        )
+      ).to.be.revertedWith("Exchange: NO_QUOTE_DECAY");
+    });
+
+    it("Should revert when _expirationTimestamp is expired", async () => {
       const expiration = Math.round(new Date().getTime() / 1000 - 60 * 50); // 50 minutes in the past.
       const liquidityProvider = accounts[1];
 
@@ -3738,6 +4354,69 @@ describe("Exchange", () => {
       )
         .to.emit(exchange, "AddLiquidity")
         .withArgs(liquidityProvider2.address, 0, 200);
+    });
+
+    it("Should revert when _baseTokenQtyDesired is 0", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // simulate a rebase by sending more tokens to our exchange contract.
+      const rebaseAmount = 40;
+      await quoteToken.transfer(exchange.address, rebaseAmount);
+
+      await expect(
+        exchange.connect(liquidityProvider2).addBaseTokenLiquidity(
+          0, // alphaDecay / omega = 40 / .2 = 200
+          1,
+          liquidityProvider2.address,
+          expiration
+        )
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_CHANGE_IN_DECAY");
+
+      await exchange.connect(liquidityProvider2).addBaseTokenLiquidity(
+        200, // alphaDecay / omega = 40 / .2 = 200
+        1,
+        liquidityProvider2.address,
+        expiration
+      );
     });
   });
 
@@ -4608,6 +5287,302 @@ describe("Exchange", () => {
           quoteTokenLiquidityToAdd,
           baseTokenLiquidityToAdd
         );
+    });
+
+    it("Should revert when there is no liquidity tokens outstanding", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+
+      // this should revert since we have no liquidity in the exchange.
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            1,
+            1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_LIQUIDITY");
+    });
+
+    it("Should revert when user supplied minimums are 0", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            0,
+            1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: MINS_MUST_BE_GREATER_THAN_ZERO");
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            1,
+            0,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: MINS_MUST_BE_GREATER_THAN_ZERO");
+
+      // attempt the transaction below which should not revert.
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          await exchange.balanceOf(liquidityProvider.address),
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+    });
+
+    it("Should revert when user supplied _quoteTokenQtyMin is more than the exchange will return", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            quoteTokenLiquidityToAdd + 1,
+            1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_QTY");
+
+      // attempt the transaction below which should not revert.
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          await exchange.balanceOf(liquidityProvider.address),
+          quoteTokenLiquidityToAdd,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+    });
+
+    it("Should revert when user supplied _baseTokenQtyMin is more than the exchange will return", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            1,
+            baseTokenLiquidityToAdd + 1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_QTY");
+
+      // attempt the transaction below which should not revert.
+      await exchange
+        .connect(liquidityProvider)
+        .removeLiquidity(
+          await exchange.balanceOf(liquidityProvider.address),
+          1,
+          baseTokenLiquidityToAdd,
+          liquidityProvider.address,
+          expiration
+        );
+    });
+
+    it("Should revert when user supplied _liquidityTokenQty is 0", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            0,
+            1,
+            baseTokenLiquidityToAdd + 1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_QTY");
     });
   });
 });
