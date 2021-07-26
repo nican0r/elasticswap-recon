@@ -343,7 +343,7 @@ Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives
 
   LP#1 initial v final state:
   quoteTokens -> final - initial = 1072969.22183754763 - 1000000 = 72969.22183754763
-  baseTokens -> final - initial = 1116251.18858083767 - 100000 = 1016251.18858083767
+  baseTokens -> final - initial = 1116251.18858083767 - 1000000 = 116251.18858083767
 
 
 ```
