@@ -752,6 +752,76 @@ describe("Exchange", () => {
         amountToAdd - swapAmount * 2
       );
     });
+
+    it("Should fire Swap event", async () => {
+      const quoteTokenAmountToAdd = 1000000;
+      const baseTokenAmountToAdd = 5000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        quoteTokenAmountToAdd
+      );
+      await baseToken.transfer(liquidityProvider.address, baseTokenAmountToAdd);
+
+      // add approvals
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, quoteTokenAmountToAdd);
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, baseTokenAmountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          quoteTokenAmountToAdd,
+          baseTokenAmountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader base tokens
+      await baseToken.transfer(trader.address, baseTokenAmountToAdd);
+      // add approvals for exchange to trade their base tokens
+      await baseToken
+        .connect(trader)
+        .approve(exchange.address, baseTokenAmountToAdd);
+
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      const baseTokenReserveBalance = await baseToken.balanceOf(
+        exchange.address
+      );
+      const pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const quoteTokenQtyReserveBeforeTrade =
+        pricingConstantK / baseTokenReserveBalance.toNumber();
+      const quoteTokenQtyReserveAfterTrade =
+        pricingConstantK /
+        (baseTokenReserveBalance.toNumber() + swapAmount - expectedFee);
+      const quoteTokenQtyExpected = Math.floor(
+        quoteTokenQtyReserveBeforeTrade - quoteTokenQtyReserveAfterTrade
+      );
+
+      // confirm Swap event is emitted with expected args
+      await expect(
+        exchange
+          .connect(trader)
+          .swapBaseTokenForQuoteToken(swapAmount, 1, expiration)
+      )
+        .to.emit(exchange, "Swap")
+        .withArgs(trader.address, 0, swapAmount, quoteTokenQtyExpected, 0);
+    });
   });
 
   describe("swapQuoteTokenForBaseToken", () => {
@@ -1444,6 +1514,76 @@ describe("Exchange", () => {
       expect(await quoteToken.balanceOf(trader.address)).to.equal(
         amountToAdd - swapAmount * 2
       );
+    });
+
+    it("Should fire Swap event", async () => {
+      const quoteTokenAmountToAdd = 1000000;
+      const baseTokenAmountToAdd = 5000000;
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const trader = accounts[2];
+
+      // send a second user (liquidity provider) quote and base tokens.
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        quoteTokenAmountToAdd
+      );
+      await baseToken.transfer(liquidityProvider.address, baseTokenAmountToAdd);
+
+      // add approvals
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, quoteTokenAmountToAdd);
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, baseTokenAmountToAdd);
+
+      // create liquidity
+      await exchange
+        .connect(liquidityProvider)
+        .addLiquidity(
+          quoteTokenAmountToAdd,
+          baseTokenAmountToAdd,
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        );
+
+      // send trader quote tokens
+      await quoteToken.transfer(trader.address, quoteTokenAmountToAdd);
+      // add approvals for exchange to trade their quote tokens
+      await quoteToken
+        .connect(trader)
+        .approve(exchange.address, quoteTokenAmountToAdd);
+
+      const swapAmount = 100000;
+      const expectedFee = swapAmount * liquidityFee;
+
+      const quoteTokenReserveBalance = await quoteToken.balanceOf(
+        exchange.address
+      );
+      const pricingConstantK =
+        (await exchange.internalBalances()).quoteTokenReserveQty *
+        (await exchange.internalBalances()).baseTokenReserveQty;
+      const baseTokenQtyReserveBeforeTrade =
+        pricingConstantK / quoteTokenReserveBalance.toNumber();
+      const baseTokenQtyReserveAfterTrade =
+        pricingConstantK /
+        (quoteTokenReserveBalance.toNumber() + swapAmount - expectedFee);
+      const baseTokenQtyExpected = Math.floor(
+        baseTokenQtyReserveBeforeTrade - baseTokenQtyReserveAfterTrade
+      );
+
+      // confirm Swap event is emitted with expected args
+      await expect(
+        exchange
+          .connect(trader)
+          .swapQuoteTokenForBaseToken(swapAmount, 1, expiration)
+      )
+        .to.emit(exchange, "Swap")
+        .withArgs(trader.address, swapAmount, 0, 0, baseTokenQtyExpected);
     });
   });
 
@@ -2877,6 +3017,53 @@ describe("Exchange", () => {
           .addLiquidity(50, 100, 1, 1, liquidityProvider.address, expiration)
       ).to.be.revertedWith("Exchange: EXPIRED");
     });
+
+    it("Should emit AddLiquidity event", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      await expect(
+        exchange.connect(liquidityProvider).addLiquidity(
+          10, // quote token
+          50, // base token
+          1,
+          1,
+          liquidityProvider.address,
+          expiration
+        )
+      )
+        .to.emit(exchange, "AddLiquidity")
+        .withArgs(liquidityProvider.address, 10, 50);
+    });
   });
 
   describe("addQuoteTokenLiquidity", () => {
@@ -3136,6 +3323,74 @@ describe("Exchange", () => {
           expiration
         )
       ).to.be.revertedWith("Exchange: INSUFFICIENT_DECAY");
+    });
+
+    it("Should emit AddLiquidity event", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // simulate a rebase down by sending tokens from our exchange contract away.
+      const quoteTokenRebaseDownAmount = 2;
+      await quoteToken.simulateRebaseDown(
+        exchange.address,
+        quoteTokenRebaseDownAmount
+      );
+
+      // we should be able to now add quote tokens in order to offset the quote tokens
+      // that have been "removed" during the rebase down.
+      await expect(
+        exchange
+          .connect(liquidityProvider2)
+          .addQuoteTokenLiquidity(
+            quoteTokenRebaseDownAmount,
+            1,
+            liquidityProvider2.address,
+            expiration
+          )
+      )
+        .to.emit(exchange, "AddLiquidity")
+        .withArgs(liquidityProvider2.address, quoteTokenRebaseDownAmount, 0);
     });
   });
 
@@ -3423,6 +3678,66 @@ describe("Exchange", () => {
             expiration
           )
       ).to.be.revertedWith("Exchange: EXPIRED");
+    });
+
+    it("Should emit AddLiquidity event", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs base tokens for single asset entry.
+      await baseToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await baseToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        10, // quote token
+        50, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // simulate a rebase by sending more tokens to our exchange contract.
+      const rebaseAmount = 40;
+      await quoteToken.transfer(exchange.address, rebaseAmount);
+
+      // we should be able to now add base tokens in order to offset the quote tokens
+      // that have been accumulated from the rebase but are not adding liquidity.
+      await expect(
+        exchange.connect(liquidityProvider2).addBaseTokenLiquidity(
+          200, // alphaDecay / omega = 40 / .2 = 200
+          1,
+          liquidityProvider2.address,
+          expiration
+        )
+      )
+        .to.emit(exchange, "AddLiquidity")
+        .withArgs(liquidityProvider2.address, 0, 200);
     });
   });
 
@@ -4228,6 +4543,71 @@ describe("Exchange", () => {
       expect(await exchange.balanceOf(accounts[0].address)).to.equal(
         amountToRedeem
       );
+    });
+
+    it("Should emit RemoveLiquidity event", async () => {
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+      const liquidityProvider2 = accounts[2];
+
+      // send users (liquidity provider) quote and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 1000000;
+      await quoteToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+      // lp2 only needs quote tokens for single asset entry.
+      await quoteToken.transfer(
+        liquidityProvider2.address,
+        liquidityProviderInitialBalances
+      );
+
+      // add approvals
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+      await quoteToken
+        .connect(liquidityProvider2)
+        .approve(exchange.address, liquidityProviderInitialBalances);
+
+      const quoteTokenLiquidityToAdd = 10;
+      const baseTokenLiquidityToAdd = 50;
+
+      await exchange.connect(liquidityProvider).addLiquidity(
+        quoteTokenLiquidityToAdd, // quote token
+        baseTokenLiquidityToAdd, // base token
+        1,
+        1,
+        liquidityProvider.address,
+        expiration
+      );
+
+      // this should distribute all quote tokens and all base tokens back to our liquidity provider
+      await expect(
+        exchange
+          .connect(liquidityProvider)
+          .removeLiquidity(
+            await exchange.balanceOf(liquidityProvider.address),
+            1,
+            1,
+            liquidityProvider.address,
+            expiration
+          )
+      )
+        .to.emit(exchange, "RemoveLiquidity")
+        .withArgs(
+          liquidityProvider.address,
+          quoteTokenLiquidityToAdd,
+          baseTokenLiquidityToAdd
+        );
     });
   });
 });
