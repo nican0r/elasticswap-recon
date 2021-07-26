@@ -77,7 +77,7 @@ describe("ExchangeFactory", () => {
       await exchangeFactory
         .connect(deployer)
         .createNewExchange(name, symbol, quoteToken.address, baseToken.address)
-    ).to.emit(exchangeFactory, "ExchangeAdded");
+    ).to.emit(exchangeFactory, "NewExchange");
   });
 
   it("Should revert when the same token pair is attempted to be added twice", async () => {

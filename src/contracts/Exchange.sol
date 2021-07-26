@@ -34,6 +34,24 @@ contract Exchange is ERC20, ReentrancyGuard {
 
     InternalBalances public internalBalances = InternalBalances(0, 0);
 
+    event AddLiquidity(
+        address indexed liquidityProvider,
+        uint256 quoteTokenQtyAdded,
+        uint256 baseTokenQtyAdded
+    );
+    event RemoveLiquidity(
+        address indexed liquidityProvider,
+        uint256 quoteTokenQtyRemoved,
+        uint256 baseTokenQtyRemoved
+    );
+    event Swap(
+        address indexed sender,
+        uint256 quoteTokenQtyIn,
+        uint256 baseTokenQtyIn,
+        uint256 quoteTokenQtyOut,
+        uint256 baseTokenQtyOut
+    );
+
     /**
      * @dev Called to check timestamps from users for expiration of their calls.
      * Used in place of a modifier for byte code savings
@@ -114,6 +132,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             );
         }
         _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+        emit AddLiquidity(msg.sender, quoteTokenQty, baseTokenQty);
     }
 
     /**
@@ -161,6 +180,7 @@ contract Exchange is ERC20, ReentrancyGuard {
         ); // transfer quote tokens to Exchange
 
         _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+        emit AddLiquidity(msg.sender, quoteTokenQty, 0);
     }
 
     /**
@@ -207,6 +227,7 @@ contract Exchange is ERC20, ReentrancyGuard {
         ); // transfer base tokens to Exchange
 
         _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
+        emit AddLiquidity(msg.sender, 0, baseTokenQty);
     }
 
     /**
@@ -273,6 +294,11 @@ contract Exchange is ERC20, ReentrancyGuard {
         _burn(msg.sender, _liquidityTokenQty);
         IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
         IERC20(baseToken).safeTransfer(_tokenRecipient, baseTokenQtyToReturn);
+        emit RemoveLiquidity(
+            msg.sender,
+            quoteTokenQtyToReturn,
+            baseTokenQtyToReturn
+        );
     }
 
     /**
@@ -304,6 +330,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             _quoteTokenQty
         );
         IERC20(baseToken).safeTransfer(msg.sender, baseTokenQty);
+        emit Swap(msg.sender, _quoteTokenQty, 0, 0, baseTokenQty);
     }
 
     /**
@@ -340,5 +367,6 @@ contract Exchange is ERC20, ReentrancyGuard {
             _baseTokenQty
         );
         IERC20(quoteToken).safeTransfer(msg.sender, quoteTokenQty);
+        emit Swap(msg.sender, 0, _baseTokenQty, quoteTokenQty, 0);
     }
 }
