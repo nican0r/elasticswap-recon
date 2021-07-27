@@ -315,6 +315,10 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _expirationTimestamp
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
+        require(
+            _quoteTokenQty > 0 && _minBaseTokenQty > 0,
+            "Exchange: INSUFFICIENT_TOKEN_QTY"
+        );
 
         uint256 baseTokenQty =
             MathLib.calculateBaseTokenQty(

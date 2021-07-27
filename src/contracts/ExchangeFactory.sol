@@ -22,10 +22,7 @@ contract ExchangeFactory is Ownable {
     uint16 public liquidityFee = 30; // fee provided to liquidity providers in basis points
 
     // events
-    event NewExchange(
-        address indexed creator,
-        address indexed exchangeAddress
-    );
+    event NewExchange(address indexed creator, address indexed exchangeAddress);
     event FeesUpdated(uint16 liquidityFee, uint16 elasticDAOFee);
 
     constructor() {}
