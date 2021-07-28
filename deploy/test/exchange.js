@@ -6,12 +6,19 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const baseToken = await deployments.get("BaseToken");
   const quoteToken = await deployments.get("QuoteToken");
   const mathLib = await deployments.get("MathLib");
+  const exchangeFactory = await deployments.get("ExchangeFactory");
   const name = "EGT LP Token";
   const symbol = "EGTLPS";
   const deployResult = await deploy("EGT Exchange", {
     from: admin,
     contract: "Exchange",
-    args: [name, symbol, quoteToken.address, baseToken.address],
+    args: [
+      name,
+      symbol,
+      quoteToken.address,
+      baseToken.address,
+      exchangeFactory.address,
+    ],
     libraries: {
       MathLib: mathLib.address,
     },
@@ -23,4 +30,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   }
 };
 module.exports.tags = ["EGT Exchange"];
-module.exports.dependencies = ["QuoteToken", "BaseToken", "MathLib"];
+module.exports.dependencies = [
+  "QuoteToken",
+  "BaseToken",
+  "MathLib",
+  "ExchangeFactory",
+];

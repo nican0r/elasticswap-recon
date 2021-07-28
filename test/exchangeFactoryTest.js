@@ -37,89 +37,168 @@ describe("ExchangeFactory", () => {
     );
   });
 
-  it("Should deploy a new exchange with correct name, symbol and addresses", async () => {
-    await exchangeFactory
-      .connect(deployer)
-      .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
-    const exchangeAddress = await exchangeFactory.exchangeAddressByTokenAddress(
-      quoteToken.address,
-      baseToken.address
-    );
+  describe("constructor", () => {
+    it("Should set the fee address when deployed", async () => {
+      expect(await exchangeFactory.feeAddress()).to.equal(accounts[5].address);
+    });
 
-    const Exchange = await deployments.get("EGT Exchange");
-    const exchange = new ethers.Contract(
-      exchangeAddress,
-      Exchange.abi,
-      deployer
-    );
-
-    expect(await exchange.name()).to.equal(name);
-    expect(await exchange.symbol()).to.equal(symbol);
-    expect(await exchange.baseToken()).to.equal(baseToken.address);
-    expect(await exchange.quoteToken()).to.equal(quoteToken.address);
+    it("Should revert when the fee address is the zero address", async () => {
+      const mathLib = await deployments.get("MathLib");
+      await expect(
+        deployments.deploy("ExchangeFactory", {
+          from: accounts[0].address,
+          args: [ethers.constants.AddressZero],
+          libraries: {
+            MathLib: mathLib.address,
+          },
+        })
+      ).to.be.revertedWith("ExchangeFactory: INVALID_ADDRESS");
+    });
   });
 
-  it("Should deploy a new exchange and add to mappings", async () => {
-    await exchangeFactory
-      .connect(deployer)
-      .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
-    const exchangeAddress = await exchangeFactory.exchangeAddressByTokenAddress(
-      quoteToken.address,
-      baseToken.address
-    );
-    expect(
-      await exchangeFactory.isValidExchangeAddress(exchangeAddress)
-    ).to.equal(true);
-  });
-
-  it("Should deploy a new exchange and emit the correct ExchangeAdded event", async () => {
-    expect(
+  describe("createNewExchange", () => {
+    it("Should deploy a new exchange and add to mappings", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, baseToken.address)
-    ).to.emit(exchangeFactory, "NewExchange");
-  });
-
-  it("Should revert when the same token pair is attempted to be added twice", async () => {
-    await exchangeFactory
-      .connect(deployer)
-      .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
-    await expect(
-      exchangeFactory
-        .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, baseToken.address)
-    ).to.be.revertedWith("ExchangeFactory: DUPLICATE_EXCHANGE");
-  });
-
-  it("Should revert when the same token is attempted to be used for both base and quote", async () => {
-    await expect(
-      exchangeFactory
-        .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, quoteToken.address)
-    ).to.be.revertedWith("ExchangeFactory: IDENTICAL_TOKENS");
-  });
-
-  it("Should revert when either token address is a null address", async () => {
-    await expect(
-      exchangeFactory
-        .connect(deployer)
-        .createNewExchange(
-          name,
-          symbol,
+        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+      const exchangeAddress =
+        await exchangeFactory.exchangeAddressByTokenAddress(
           quoteToken.address,
-          ethers.constants.AddressZero
-        )
-    ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
-
-    await expect(
-      exchangeFactory
-        .connect(deployer)
-        .createNewExchange(
-          name,
-          symbol,
-          ethers.constants.AddressZero,
           baseToken.address
-        )
-    ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
+        );
+      expect(
+        await exchangeFactory.isValidExchangeAddress(exchangeAddress)
+      ).to.equal(true);
+    });
+
+    it("Should deploy a new exchange with correct name, symbol and addresses", async () => {
+      await exchangeFactory
+        .connect(deployer)
+        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+      const exchangeAddress =
+        await exchangeFactory.exchangeAddressByTokenAddress(
+          quoteToken.address,
+          baseToken.address
+        );
+
+      const Exchange = await deployments.get("EGT Exchange");
+      const exchange = new ethers.Contract(
+        exchangeAddress,
+        Exchange.abi,
+        deployer
+      );
+
+      expect(await exchange.name()).to.equal(name);
+      expect(await exchange.symbol()).to.equal(symbol);
+      expect(await exchange.baseToken()).to.equal(baseToken.address);
+      expect(await exchange.quoteToken()).to.equal(quoteToken.address);
+    });
+
+    it("Should deploy a new exchange and emit the correct ExchangeAdded event", async () => {
+      expect(
+        await exchangeFactory
+          .connect(deployer)
+          .createNewExchange(
+            name,
+            symbol,
+            quoteToken.address,
+            baseToken.address
+          )
+      ).to.emit(exchangeFactory, "NewExchange");
+    });
+
+    it("Should revert when the same token pair is attempted to be added twice", async () => {
+      await exchangeFactory
+        .connect(deployer)
+        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+      await expect(
+        exchangeFactory
+          .connect(deployer)
+          .createNewExchange(
+            name,
+            symbol,
+            quoteToken.address,
+            baseToken.address
+          )
+      ).to.be.revertedWith("ExchangeFactory: DUPLICATE_EXCHANGE");
+    });
+
+    it("Should revert when the same token is attempted to be used for both base and quote", async () => {
+      await expect(
+        exchangeFactory
+          .connect(deployer)
+          .createNewExchange(
+            name,
+            symbol,
+            quoteToken.address,
+            quoteToken.address
+          )
+      ).to.be.revertedWith("ExchangeFactory: IDENTICAL_TOKENS");
+    });
+
+    it("Should revert when either token address is a null address", async () => {
+      await expect(
+        exchangeFactory
+          .connect(deployer)
+          .createNewExchange(
+            name,
+            symbol,
+            quoteToken.address,
+            ethers.constants.AddressZero
+          )
+      ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
+
+      await expect(
+        exchangeFactory
+          .connect(deployer)
+          .createNewExchange(
+            name,
+            symbol,
+            ethers.constants.AddressZero,
+            baseToken.address
+          )
+      ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
+    });
+
+    it("Should revert when a non owner attempts to change the fee address", async () => {
+      const newFeeAddress = accounts[8].address;
+      await expect(
+        exchangeFactory.connect(accounts[1]).setFeeAddress(newFeeAddress)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("setFeeAddress", () => {
+    it("Should allow the fee address to be changed by the owner", async () => {
+      const newFeeAddress = accounts[8].address;
+      await exchangeFactory.setFeeAddress(newFeeAddress);
+      expect(await exchangeFactory.feeAddress()).to.equal(newFeeAddress);
+    });
+
+    it("Should emit SetFeeAddress", async () => {
+      const newFeeAddress = accounts[8].address;
+      await expect(exchangeFactory.setFeeAddress(newFeeAddress))
+        .to.emit(exchangeFactory, "SetFeeAddress")
+        .withArgs(newFeeAddress);
+    });
+
+    it("Should revert when the fee a owner attempts to change the fee address", async () => {
+      const newFeeAddress = accounts[8].address;
+      await expect(
+        exchangeFactory.connect(accounts[1]).setFeeAddress(newFeeAddress)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should revert when the owner attempts to change the fee address to the zero address", async () => {
+      await expect(
+        exchangeFactory.setFeeAddress(ethers.constants.AddressZero)
+      ).to.be.revertedWith("ExchangeFactory: INVAlID_FEE_ADDRESS");
+    });
+
+    it("Should revert when the owner attempts to change the fee address to the same address", async () => {
+      await expect(
+        exchangeFactory.setFeeAddress(await exchangeFactory.feeAddress())
+      ).to.be.revertedWith("ExchangeFactory: INVAlID_FEE_ADDRESS");
+    });
   });
 });

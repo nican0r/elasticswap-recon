@@ -1,13 +1,13 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
   const namedAccounts = await getNamedAccounts();
-  const { admin } = namedAccounts;
+  const { admin, feeRecipient } = namedAccounts;
 
   const mathLib = await deployments.get("MathLib");
   const deployResult = await deploy("ExchangeFactory", {
     from: admin,
     contract: "ExchangeFactory",
-    args: [],
+    args: [feeRecipient],
     libraries: {
       MathLib: mathLib.address,
     },

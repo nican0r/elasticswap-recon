@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Exchange.sol";
+import "../interfaces/IExchangeFactory.sol";
 
 /**
  * @title ExchangeFactory contract for Elastic Swap.
@@ -13,19 +14,21 @@ import "./Exchange.sol";
  * a single token pair.  Additionally it houses records of all deployed Exchange's for validation and easy
  * lookup.
  */
-contract ExchangeFactory is Ownable {
+contract ExchangeFactory is Ownable, IExchangeFactory {
     mapping(address => mapping(address => address))
         public exchangeAddressByTokenAddress;
     mapping(address => bool) public isValidExchangeAddress;
 
-    uint16 public elasticDAOFee = 10; // ElasticDAO development fund fee in basis points
-    uint16 public liquidityFee = 30; // fee provided to liquidity providers in basis points
+    address private feeAddress_;
 
     // events
     event NewExchange(address indexed creator, address indexed exchangeAddress);
-    event FeesUpdated(uint16 liquidityFee, uint16 elasticDAOFee);
+    event SetFeeAddress(address indexed feeAddress);
 
-    constructor() {}
+    constructor(address _feeAddress) {
+        require(_feeAddress != address(0), "ExchangeFactory: INVALID_ADDRESS");
+        feeAddress_ = _feeAddress;
+    }
 
     /**
      * @notice called to create a new erc20 token pair exchange
@@ -52,25 +55,32 @@ contract ExchangeFactory is Ownable {
         );
 
         Exchange exchange =
-            new Exchange(_name, _symbol, _quoteToken, _baseToken);
+            new Exchange(
+                _name,
+                _symbol,
+                _quoteToken,
+                _baseToken,
+                address(this)
+            );
+
         exchangeAddressByTokenAddress[_quoteToken][_baseToken] = address(
             exchange
         );
         isValidExchangeAddress[address(exchange)] = true;
+
         emit NewExchange(msg.sender, address(exchange));
     }
 
-    function setFees(uint16 _liquidityFee, uint16 _elasticDAOFee)
-        external
-        onlyOwner
-    {
+    function setFeeAddress(address _feeAddress) external onlyOwner {
         require(
-            elasticDAOFee != _elasticDAOFee || liquidityFee != _liquidityFee,
-            "ExchangeFactory: IDENTICAL_FEES"
+            _feeAddress != address(0) && _feeAddress != feeAddress_,
+            "ExchangeFactory: INVAlID_FEE_ADDRESS"
         );
-        elasticDAOFee = _elasticDAOFee;
-        liquidityFee = _liquidityFee;
+        feeAddress_ = _feeAddress;
+        emit SetFeeAddress(feeAddress_);
+    }
 
-        // TODO (need to understand the proposed fee structure)
+    function feeAddress() public view virtual override returns (address) {
+        return feeAddress_;
     }
 }

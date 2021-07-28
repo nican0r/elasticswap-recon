@@ -40,6 +40,9 @@ module.exports = {
     trader2: {
       default: 4,
     },
+    feeRecipient: {
+      default: 5,
+    },
   },
   contractSizer: {
     alphaSort: true,
