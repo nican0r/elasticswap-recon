@@ -1,17 +1,17 @@
 const { expect } = require("chai");
 const { ethers, deployments } = require("hardhat");
 
-describe("Exchange", () => {
-  const WAD = ethers.BigNumber.from("1000000000000000000");
-  let exchange;
-  let baseToken;
-  let quoteToken;
-  let accounts;
-  let liquidityFee;
-  let liquidityFeeInBasisPoints;
-  let initialSupply;
-  let mathLib;
+const WAD = ethers.BigNumber.from("1000000000000000000");
+let exchange;
+let baseToken;
+let quoteToken;
+let accounts;
+let liquidityFee;
+let liquidityFeeInBasisPoints;
+let initialSupply;
+let mathLib;
 
+describe("Exchange", () => {
   beforeEach(async () => {
     accounts = await ethers.getSigners();
     await deployments.fixture();
@@ -4782,7 +4782,7 @@ describe("Exchange", () => {
 
       // simulate a rebase up by sending our exchange double the current amount quote tokens.
       // this means that the fee address should also be able to later redeem double the amount of
-      // quote tokens associated with the fees from the above trade. 
+      // quote tokens associated with the fees from the above trade.
       await quoteToken.transfer(
         exchange.address,
         (await quoteToken.balanceOf(exchange.address)).mul(2)
