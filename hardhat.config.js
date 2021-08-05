@@ -54,7 +54,6 @@ module.exports = {
   },
   gasReporter: {
     enabled: true,
-    currency: 'USD',
-    apiKey: '8f260ad2-54d1-442f-b258-7b1dccd274eb',
-  }
+    currency: "USD",
+  },
 };
