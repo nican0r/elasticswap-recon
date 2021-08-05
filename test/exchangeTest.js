@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const { ethers, deployments } = require("hardhat");
 
 describe("Exchange", () => {
+  const WAD = ethers.BigNumber.from("1000000000000000000");
   let exchange;
   let baseToken;
   let quoteToken;
@@ -3549,9 +3550,8 @@ describe("Exchange", () => {
       // a single value of one token to compare the qty of fees expected
       const expectedTotalFees = baseTokenQtyToSwap * liquidityFee;
       const expectedDaoFeesInBaseTokens = expectedTotalFees / 6;
-      const multiplier = 100000;
       const exchangePriceRatio = (await quoteToken.balanceOf(exchange.address))
-        .mul(multiplier)
+        .mul(WAD)
         .div(await baseToken.balanceOf(exchange.address));
 
       // calling add liquidity should force tokens to get issued to the DAO for fees
@@ -3579,7 +3579,7 @@ describe("Exchange", () => {
       const baseTokenFees = await baseToken.balanceOf(feeOwner.address);
       const quoteTokenFees = await quoteToken.balanceOf(feeOwner.address);
       const daoFeesInBaseTokens = baseTokenFees.add(
-        quoteTokenFees.mul(multiplier).div(exchangePriceRatio)
+        quoteTokenFees.mul(WAD).div(exchangePriceRatio)
       );
       expect(daoFeesInBaseTokens.toNumber()).to.be.approximately(
         expectedDaoFeesInBaseTokens,
@@ -4686,9 +4686,8 @@ describe("Exchange", () => {
       // a single value of one token to compare the qty of fees expected
       const expectedTotalFees = baseTokenQtyToSwap * liquidityFee;
       const expectedDaoFeesInBaseTokens = expectedTotalFees / 6;
-      const multiplier = 100000;
       const exchangePriceRatio = (await quoteToken.balanceOf(exchange.address))
-        .mul(multiplier)
+        .mul(WAD)
         .div(await baseToken.balanceOf(exchange.address));
 
       // calling remove liquidity should force tokens to get issued to the DAO for fees
@@ -4715,7 +4714,7 @@ describe("Exchange", () => {
       const baseTokenFees = await baseToken.balanceOf(feeOwner.address);
       const quoteTokenFees = await quoteToken.balanceOf(feeOwner.address);
       const daoFeesInBaseTokens = baseTokenFees.add(
-        quoteTokenFees.mul(multiplier).div(exchangePriceRatio)
+        quoteTokenFees.mul(WAD).div(exchangePriceRatio)
       );
       expect(daoFeesInBaseTokens.toNumber()).to.be.approximately(
         expectedDaoFeesInBaseTokens,
@@ -4780,10 +4779,10 @@ describe("Exchange", () => {
       // a single value of one token to compare the qty of fees expected
       const expectedTotalFees = baseTokenQtyToSwap * liquidityFee;
       const expectedDaoFeesInBaseTokens = expectedTotalFees / 6;
-      const multiplier = 100000;
 
       // simulate a rebase up by sending our exchange double the current amount quote tokens.
-      // this means that the fee address should also get double the quote tokens.
+      // this means that the fee address should also be able to later redeem double the amount of
+      // quote tokens associated with the fees from the above trade. 
       await quoteToken.transfer(
         exchange.address,
         (await quoteToken.balanceOf(exchange.address)).mul(2)
@@ -4791,7 +4790,7 @@ describe("Exchange", () => {
 
       // calculate the ratio after rebase which we should be issues tokens at
       const exchangeTokenRatio = (await quoteToken.balanceOf(exchange.address))
-        .mul(multiplier)
+        .mul(WAD)
         .div(await baseToken.balanceOf(exchange.address));
 
       // calling remove liquidity should force tokens to get issued to the DAO for fees
@@ -4818,7 +4817,7 @@ describe("Exchange", () => {
       const baseTokenFees = await baseToken.balanceOf(feeOwner.address);
       const quoteTokenFees = await quoteToken.balanceOf(feeOwner.address);
       const daoFeesInBaseTokens = baseTokenFees.add(
-        quoteTokenFees.mul(multiplier).div(exchangeTokenRatio)
+        quoteTokenFees.mul(WAD).div(exchangeTokenRatio)
       );
       expect(daoFeesInBaseTokens.toNumber()).to.be.approximately(
         expectedDaoFeesInBaseTokens,
@@ -4883,7 +4882,6 @@ describe("Exchange", () => {
       // a single value of one token to compare the qty of fees expected
       const expectedTotalFees = baseTokenQtyToSwap * liquidityFee;
       const expectedDaoFeesInBaseTokens = expectedTotalFees / 6;
-      const multiplier = 100000;
 
       // simulate a rebase down by sending tokens away from exchange 1/2 the current amount quote tokens.
       // this means that the fee address should also get 1/2 the quote tokens.
@@ -4894,7 +4892,7 @@ describe("Exchange", () => {
 
       // calculate the ratio after rebase which we should be issues tokens at
       const exchangeTokenRatio = (await quoteToken.balanceOf(exchange.address))
-        .mul(multiplier)
+        .mul(WAD)
         .div(await baseToken.balanceOf(exchange.address));
 
       // calling remove liquidity should force tokens to get issued to the DAO for fees
@@ -4921,7 +4919,7 @@ describe("Exchange", () => {
       const baseTokenFees = await baseToken.balanceOf(feeOwner.address);
       const quoteTokenFees = await quoteToken.balanceOf(feeOwner.address);
       const daoFeesInBaseTokens = baseTokenFees.add(
-        quoteTokenFees.mul(multiplier).div(exchangeTokenRatio)
+        quoteTokenFees.mul(WAD).div(exchangeTokenRatio)
       );
       expect(daoFeesInBaseTokens.toNumber()).to.be.approximately(
         expectedDaoFeesInBaseTokens,
