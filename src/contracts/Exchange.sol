@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../interfaces/IExchangeFactory.sol";
 
 /**
  * @title Exchange contract for Elastic Swap representing a single ERC20 pair of tokens to be swapped.
@@ -18,21 +19,14 @@ contract Exchange is ERC20, ReentrancyGuard {
     using MathLib for uint256;
     using SafeERC20 for IERC20;
 
-    struct InternalBalances {
-        // x*y=k - we track these internally to compare to actual balances of the ERC20's
-        // in order to calculate the "decay" or the amount of balances that are not
-        // participating in the pricing curve and adding additional liquidity to swap.
-        uint256 quoteTokenReserveQty; // x
-        uint256 baseTokenReserveQty; // y
-    }
-
     address public immutable quoteToken; // address of ERC20 quote token (elastic or fixed supply)
     address public immutable baseToken; // address of ERC20 base token (WETH or a stable coin w/ fixed supply)
+    address public immutable exchangeFactoryAddress;
 
-    uint16 public elasticDAOFee; // ElasticDAO development fund fee in basis points
-    uint16 public constant liquidityFee = 30; // fee provided to liquidity providers in basis points
+    uint16 public constant TOTAL_LIQUIDITY_FEE = 30; // fee provided to liquidity providers + DAO in basis points
 
-    InternalBalances public internalBalances = InternalBalances(0, 0);
+    MathLib.InternalBalances public internalBalances =
+        MathLib.InternalBalances(0, 0, 0);
 
     event AddLiquidity(
         address indexed liquidityProvider,
@@ -71,10 +65,12 @@ contract Exchange is ERC20, ReentrancyGuard {
         string memory _name,
         string memory _symbol,
         address _quoteToken,
-        address _baseToken
+        address _baseToken,
+        address _exchangeFactoryAddress
     ) ERC20(_name, _symbol) {
         quoteToken = _quoteToken;
         baseToken = _baseToken;
+        exchangeFactoryAddress = _exchangeFactoryAddress;
     }
 
     /**
@@ -99,11 +95,7 @@ contract Exchange is ERC20, ReentrancyGuard {
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
 
-        (
-            uint256 quoteTokenQty,
-            uint256 baseTokenQty,
-            uint256 liquidityTokenQty
-        ) =
+        MathLib.TokenQtys memory tokenQtys =
             MathLib.calculateAddLiquidityQuantities(
                 _quoteTokenQtyDesired,
                 _baseTokenQtyDesired,
@@ -115,119 +107,41 @@ contract Exchange is ERC20, ReentrancyGuard {
                 internalBalances
             );
 
-        if (quoteTokenQty != 0) {
+        internalBalances.kLast =
+            internalBalances.quoteTokenReserveQty *
+            internalBalances.baseTokenReserveQty;
+
+        if (tokenQtys.liquidityTokenFeeQty > 0) {
+            // mint liquidity tokens to fee address for k growth.
+            _mint(
+                IExchangeFactory(exchangeFactoryAddress).feeAddress(),
+                tokenQtys.liquidityTokenFeeQty
+            );
+        }
+        _mint(_liquidityTokenRecipient, tokenQtys.liquidityTokenQty); // mint liquidity tokens to recipient
+
+        if (tokenQtys.quoteTokenQty != 0) {
             // transfer quote tokens to Exchange
             IERC20(quoteToken).safeTransferFrom(
                 msg.sender,
                 address(this),
-                quoteTokenQty
+                tokenQtys.quoteTokenQty
             );
         }
-        if (baseTokenQty != 0) {
+        if (tokenQtys.baseTokenQty != 0) {
             // transfer base tokens to Exchange
             IERC20(baseToken).safeTransferFrom(
                 msg.sender,
                 address(this),
-                baseTokenQty
+                tokenQtys.baseTokenQty
             );
         }
-        _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
-        emit AddLiquidity(msg.sender, quoteTokenQty, baseTokenQty);
-    }
 
-    /**
-     * @notice Entry point for a liquidity provider to add liquidity (quote tokens) to the exchange
-     * when base token decay is present due to elastic token supply ( a rebase down event).
-     * The caller will receive liquidity tokens in return.
-     * Requires approvals to be granted to this exchange for quote tokens.
-     * @dev variable names with the prefix "w" represent WAD values (decimals with 18 digits of precision)
-     * @param _quoteTokenQtyDesired qty of quoteTokens that you would like to add to the exchange
-     * @param _quoteTokenQtyMin minimum acceptable qty of quoteTokens that will be added (or transaction will revert)
-     * @param _liquidityTokenRecipient address for the exchange to issue the resulting liquidity tokens from
-     * this transaction to
-     * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
-     */
-    function addQuoteTokenLiquidity(
-        uint256 _quoteTokenQtyDesired,
-        uint256 _quoteTokenQtyMin,
-        address _liquidityTokenRecipient,
-        uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
-        // to calculate decay in base token, we need to see if we have less
-        // quote token than we expect.  This would mean a rebase down has occurred.
-        uint256 quoteTokenReserveQty =
-            IERC20(quoteToken).balanceOf(address(this));
-
-        require(
-            internalBalances.quoteTokenReserveQty > quoteTokenReserveQty,
-            "Exchange: NO_BASE_DECAY"
-        );
-
-        (uint256 quoteTokenQty, uint256 liquidityTokenQty) =
-            MathLib.calculateAddQuoteTokenLiquidityQuantities(
-                _quoteTokenQtyDesired,
-                _quoteTokenQtyMin,
-                quoteTokenReserveQty,
-                this.totalSupply(),
-                internalBalances
-            );
-
-        IERC20(quoteToken).safeTransferFrom(
+        emit AddLiquidity(
             msg.sender,
-            address(this),
-            quoteTokenQty
-        ); // transfer quote tokens to Exchange
-
-        _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
-        emit AddLiquidity(msg.sender, quoteTokenQty, 0);
-    }
-
-    /**
-     * @notice Entry point for a liquidity provider to add liquidity (base tokens) to the exchange
-     * when quote token decay is present due to elastic token supply.
-     * The caller will receive liquidity tokens in return.
-     * Requires approvals to be granted to this exchange for base tokens.
-     * @dev variable names with the prefix "w" represent WAD values (decimals with 18 digits of precision)
-     * @param _baseTokenQtyDesired qty of baseTokens that you would like to add to the exchange
-     * @param _baseTokenQtyMin minimum acceptable qty of baseTokens that will be added (or transaction will revert)
-     * @param _liquidityTokenRecipient address for the exchange to issue the resulting liquidity tokens from
-     * this transaction to
-     * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
-     */
-    function addBaseTokenLiquidity(
-        uint256 _baseTokenQtyDesired,
-        uint256 _baseTokenQtyMin,
-        address _liquidityTokenRecipient,
-        uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
-
-        uint256 quoteTokenReserveQty =
-            IERC20(quoteToken).balanceOf(address(this));
-
-        require(
-            quoteTokenReserveQty > internalBalances.quoteTokenReserveQty,
-            "Exchange: NO_QUOTE_DECAY"
+            tokenQtys.quoteTokenQty,
+            tokenQtys.baseTokenQty
         );
-
-        (uint256 baseTokenQty, uint256 liquidityTokenQty) =
-            MathLib.calculateAddBaseTokenLiquidityQuantities(
-                _baseTokenQtyDesired,
-                _baseTokenQtyMin,
-                quoteTokenReserveQty,
-                this.totalSupply(),
-                internalBalances
-            );
-
-        IERC20(baseToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            baseTokenQty
-        ); // transfer base tokens to Exchange
-
-        _mint(_liquidityTokenRecipient, liquidityTokenQty); // mint liquidity tokens to recipient
-        emit AddLiquidity(msg.sender, 0, baseTokenQty);
     }
 
     /**
@@ -259,10 +173,23 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 baseTokenReserveQty =
             IERC20(baseToken).balanceOf(address(this));
 
+        uint256 totalSupplyOfLiquidityTokens = this.totalSupply();
+        // calculate any DAO fees here.
+        uint256 liquidityTokenFeeQty =
+            MathLib.calculateLiquidityTokenFees(
+                totalSupplyOfLiquidityTokens,
+                internalBalances
+            );
+
+        // we need to factor this quantity in to any total supply before redemption
+        totalSupplyOfLiquidityTokens += liquidityTokenFeeQty;
+
         uint256 quoteTokenQtyToReturn =
-            (_liquidityTokenQty * quoteTokenReserveQty) / this.totalSupply();
+            (_liquidityTokenQty * quoteTokenReserveQty) /
+                totalSupplyOfLiquidityTokens;
         uint256 baseTokenQtyToReturn =
-            (_liquidityTokenQty * baseTokenReserveQty) / this.totalSupply();
+            (_liquidityTokenQty * baseTokenReserveQty) /
+                totalSupplyOfLiquidityTokens;
 
         require(
             quoteTokenQtyToReturn >= _quoteTokenQtyMin,
@@ -278,17 +205,27 @@ contract Exchange is ERC20, ReentrancyGuard {
         // when this person exits.
         uint256 quoteTokenQtyToRemoveFromInternalAccounting =
             (_liquidityTokenQty * internalBalances.quoteTokenReserveQty) /
-                this.totalSupply();
+                totalSupplyOfLiquidityTokens;
 
         internalBalances
             .quoteTokenReserveQty -= quoteTokenQtyToRemoveFromInternalAccounting;
 
-        // we need to ensure no overflow here in the case when
-        // we are removing assets when a decay is present. (not sure if this is true, need test.)
+        // We should ensure no possible overflow here.
         if (baseTokenQtyToReturn > internalBalances.baseTokenReserveQty) {
             internalBalances.baseTokenReserveQty = 0;
         } else {
             internalBalances.baseTokenReserveQty -= baseTokenQtyToReturn;
+        }
+
+        internalBalances.kLast =
+            internalBalances.quoteTokenReserveQty *
+            internalBalances.baseTokenReserveQty;
+
+        if (liquidityTokenFeeQty > 0) {
+            _mint(
+                IExchangeFactory(exchangeFactoryAddress).feeAddress(),
+                liquidityTokenFeeQty
+            );
         }
 
         _burn(msg.sender, _liquidityTokenQty);
@@ -324,7 +261,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             MathLib.calculateBaseTokenQty(
                 _quoteTokenQty,
                 _minBaseTokenQty,
-                liquidityFee,
+                TOTAL_LIQUIDITY_FEE,
                 internalBalances
             );
 
@@ -333,6 +270,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             address(this),
             _quoteTokenQty
         );
+
         IERC20(baseToken).safeTransfer(msg.sender, baseTokenQty);
         emit Swap(msg.sender, _quoteTokenQty, 0, 0, baseTokenQty);
     }
@@ -361,7 +299,7 @@ contract Exchange is ERC20, ReentrancyGuard {
                 _baseTokenQty,
                 _minQuoteTokenQty,
                 IERC20(quoteToken).balanceOf(address(this)),
-                liquidityFee,
+                TOTAL_LIQUIDITY_FEE,
                 internalBalances
             );
 
@@ -370,6 +308,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             address(this),
             _baseTokenQty
         );
+
         IERC20(quoteToken).safeTransfer(msg.sender, quoteTokenQty);
         emit Swap(msg.sender, 0, _baseTokenQty, quoteTokenQty, 0);
     }
