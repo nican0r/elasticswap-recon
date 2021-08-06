@@ -3586,6 +3586,94 @@ describe("Exchange", () => {
         10
       );
     });
+
+    it("Should revert if the quoteToken is a fee on transfer token", async () => {
+      // get our deployed fee on transfer token mock
+      const FeeOnTransferToken = await deployments.get("FeeOnTransferMock");
+      const feeOnTransferToken = new ethers.Contract(
+        FeeOnTransferToken.address,
+        FeeOnTransferToken.abi,
+        accounts[0]
+      );
+
+      // create a new exchange with it.
+      const ExchangeFactory = await deployments.get("ExchangeFactory");
+      const exchangeFactory = new ethers.Contract(
+        ExchangeFactory.address,
+        ExchangeFactory.abi,
+        accounts[0]
+      );
+
+      await exchangeFactory.createNewExchange(
+        "FeeOnTransferExchange",
+        "FOTX",
+        feeOnTransferToken.address,
+        baseToken.address
+      );
+      const exchangeAddress =
+        await exchangeFactory.exchangeAddressByTokenAddress(
+          feeOnTransferToken.address,
+          baseToken.address
+        );
+
+      const Exchange = await deployments.get("EGT Exchange");
+      const feeOnTransferExchange = new ethers.Contract(
+        exchangeAddress,
+        Exchange.abi,
+        accounts[0]
+      );
+
+      // create expiration 50 minutes from now.
+      const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50);
+      const liquidityProvider = accounts[1];
+
+      // send lp quote (a fee on transfer token) and base tokens for easy accounting.
+      const liquidityProviderInitialBalances = 10000000;
+      await feeOnTransferToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+
+      const expectedFees = (await feeOnTransferToken.FEE_IN_BASIS_POINTS())
+        .mul(liquidityProviderInitialBalances)
+        .div(10000);
+
+      // confirm that our Fee is working!
+      expect(
+        await feeOnTransferToken.balanceOf(liquidityProvider.address)
+      ).to.equal(liquidityProviderInitialBalances - expectedFees);
+
+      await baseToken.transfer(
+        liquidityProvider.address,
+        liquidityProviderInitialBalances
+      );
+
+      await feeOnTransferToken
+        .connect(liquidityProvider)
+        .approve(
+          feeOnTransferExchange.address,
+          liquidityProviderInitialBalances
+        );
+      await baseToken
+        .connect(liquidityProvider)
+        .approve(
+          feeOnTransferExchange.address,
+          liquidityProviderInitialBalances
+        );
+
+      await expect(
+        feeOnTransferExchange
+          .connect(liquidityProvider)
+          .addLiquidity(
+            1000000,
+            1000000,
+            1,
+            1,
+            liquidityProvider.address,
+            expiration
+          )
+      ).to.be.revertedWith("Exchange: FEE_ON_TRANSFER_NOT_SUPPORTED");
+    });
   });
 
   describe("removeLiquidity", () => {
