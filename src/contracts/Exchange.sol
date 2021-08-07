@@ -121,13 +121,25 @@ contract Exchange is ERC20, ReentrancyGuard {
         _mint(_liquidityTokenRecipient, tokenQtys.liquidityTokenQty); // mint liquidity tokens to recipient
 
         if (tokenQtys.quoteTokenQty != 0) {
+            bool isExchangeEmpty =
+                IERC20(quoteToken).balanceOf(address(this)) == 0;
+
             // transfer quote tokens to Exchange
             IERC20(quoteToken).safeTransferFrom(
                 msg.sender,
                 address(this),
                 tokenQtys.quoteTokenQty
             );
+
+            if (isExchangeEmpty) {
+                require(
+                    IERC20(quoteToken).balanceOf(address(this)) ==
+                        tokenQtys.quoteTokenQty,
+                    "Exchange: FEE_ON_TRANSFER_NOT_SUPPORTED"
+                );
+            }
         }
+
         if (tokenQtys.baseTokenQty != 0) {
             // transfer base tokens to Exchange
             IERC20(baseToken).safeTransferFrom(
