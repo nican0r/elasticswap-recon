@@ -20,14 +20,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pelsasser/ElasticSwap.git"
+    "url": "git+https://github.com/elasticdao/elasticswap.git"
   },
-  "author": "Phil Elsasser",
+  "author": "0xean",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/pelsasser/ElasticSwap/issues"
+    "url": "https://github.com/elasticdao/elasticswap/issues"
   },
-  "homepage": "https://github.com/pelsasser/ElasticSwap#readme",
+  "homepage": "https://github.com/elasticdao/elasticswap#readme",
   "devDependencies": {
     "chai": "^4.3.4",
     "eslint": "^7.27.0",
