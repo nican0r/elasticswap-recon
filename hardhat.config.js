@@ -1,5 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-contract-sizer");
+require("hardhat-gas-reporter");
 require("hardhat-deploy");
 
 // You need to export an object to set up your config
@@ -9,10 +10,13 @@ require("hardhat-deploy");
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.4",
-  settings: {
-    optimizer: {
-      enabled: true,
+  solidity: {
+    version: "0.8.4",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 100000,
+      },
     },
   },
   networks: {
@@ -47,5 +51,9 @@ module.exports = {
   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
+  },
+  gasReporter: {
+    enabled: true,
+    currency: "USD",
   },
 };
