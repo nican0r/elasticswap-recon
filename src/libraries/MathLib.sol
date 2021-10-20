@@ -401,7 +401,7 @@ library MathLib {
                 if (
                     _baseTokenReserveQty > _internalBalances.baseTokenReserveQty
                 ) {
-                    // we have more base token than expected (base token decay) due to requote up
+                    // we have more base token than expected (base token decay) due to rebase up
                     // we first need to handle this situation by requiring this user
                     // to add quote tokens
                     (
@@ -415,7 +415,7 @@ library MathLib {
                         _internalBalances
                     );
                 } else {
-                    // we have less base token than expected (quote token decay) due to a requote down
+                    // we have less base token than expected (quote token decay) due to a rebase down
                     // we first need to handle this by adding base tokens to offset this.
                     (
                         baseTokenQtyFromDecay,
@@ -609,7 +609,7 @@ library MathLib {
             "MathLib: INSUFFICIENT_base_TOKEN_QTY"
         );
 
-        // check to see if we have experience quote token decay / a requote down event
+        // check to see if we have experience quote token decay / a rebase down event
         if (_baseTokenReserveQty < _internalBalances.baseTokenReserveQty) {
             // we have less reserves than our current price curve will expect, we need to adjust the curve
             uint256 wPricingRatio =
