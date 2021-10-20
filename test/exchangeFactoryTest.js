@@ -8,7 +8,7 @@ describe("ExchangeFactory", () => {
   let accounts;
   let deployer;
 
-  const name = "quote base Pair";
+  const name = "Quote Base Pair";
   const symbol = "QvB";
 
   beforeEach(async () => {
