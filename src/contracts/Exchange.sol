@@ -19,8 +19,8 @@ contract Exchange is ERC20, ReentrancyGuard {
     using MathLib for uint256;
     using SafeERC20 for IERC20;
 
-    address public immutable quoteToken; // address of ERC20 quote token (elastic or fixed supply)
-    address public immutable baseToken; // address of ERC20 base token (WETH or a stable coin w/ fixed supply)
+    address public immutable baseToken; // address of ERC20 base token (elastic or fixed supply)
+    address public immutable quoteToken; // address of ERC20 quote token (WETH or a stable coin w/ fixed supply)
     address public immutable exchangeFactoryAddress;
 
     uint16 public constant TOTAL_LIQUIDITY_FEE = 30; // fee provided to liquidity providers + DAO in basis points
@@ -30,20 +30,20 @@ contract Exchange is ERC20, ReentrancyGuard {
 
     event AddLiquidity(
         address indexed liquidityProvider,
-        uint256 quoteTokenQtyAdded,
-        uint256 baseTokenQtyAdded
+        uint256 baseTokenQtyAdded,
+        uint256 quoteTokenQtyAdded
     );
     event RemoveLiquidity(
         address indexed liquidityProvider,
-        uint256 quoteTokenQtyRemoved,
-        uint256 baseTokenQtyRemoved
+        uint256 baseTokenQtyRemoved,
+        uint256 quoteTokenQtyRemoved
     );
     event Swap(
         address indexed sender,
-        uint256 quoteTokenQtyIn,
         uint256 baseTokenQtyIn,
-        uint256 quoteTokenQtyOut,
-        uint256 baseTokenQtyOut
+        uint256 quoteTokenQtyIn,
+        uint256 baseTokenQtyOut,
+        uint256 quoteTokenQtyOut
     );
 
     /**
@@ -58,38 +58,38 @@ contract Exchange is ERC20, ReentrancyGuard {
      * @notice called by the exchange factory to create a new erc20 token swap pair (do not call this directly!)
      * @param _name The human readable name of this pair (also used for the liquidity token name)
      * @param _symbol Shortened symbol for trading pair (also used for the liquidity token symbol)
-     * @param _quoteToken address of the ERC20 quote token in the pair. This token can have a fixed or elastic supply
-     * @param _baseToken address of the ERC20 base token in the pair. This token is assumed to have a fixed supply.
+     * @param _baseToken address of the ERC20 base token in the pair. This token can have a fixed or elastic supply
+     * @param _quoteToken address of the ERC20 quote token in the pair. This token is assumed to have a fixed supply.
      */
     constructor(
         string memory _name,
         string memory _symbol,
-        address _quoteToken,
         address _baseToken,
+        address _quoteToken,
         address _exchangeFactoryAddress
     ) ERC20(_name, _symbol) {
-        quoteToken = _quoteToken;
         baseToken = _baseToken;
+        quoteToken = _quoteToken;
         exchangeFactoryAddress = _exchangeFactoryAddress;
     }
 
     /**
-     * @notice primary entry point for a liquidity provider to add new liquidity (quote and base tokens) to the exchange
+     * @notice primary entry point for a liquidity provider to add new liquidity (base and quote tokens) to the exchange
      * and receive liquidity tokens in return.
-     * Requires approvals to be granted to this exchange for both quote and base tokens.
-     * @param _quoteTokenQtyDesired qty of quoteTokens that you would like to add to the exchange
+     * Requires approvals to be granted to this exchange for both base and quote tokens.
      * @param _baseTokenQtyDesired qty of baseTokens that you would like to add to the exchange
-     * @param _quoteTokenQtyMin minimum acceptable qty of quoteTokens that will be added (or transaction will revert)
+     * @param _quoteTokenQtyDesired qty of quoteTokens that you would like to add to the exchange
      * @param _baseTokenQtyMin minimum acceptable qty of baseTokens that will be added (or transaction will revert)
+     * @param _quoteTokenQtyMin minimum acceptable qty of quoteTokens that will be added (or transaction will revert)
      * @param _liquidityTokenRecipient address for the exchange to issue the resulting liquidity tokens from
      * this transaction to
      * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
      */
     function addLiquidity(
-        uint256 _quoteTokenQtyDesired,
         uint256 _baseTokenQtyDesired,
-        uint256 _quoteTokenQtyMin,
+        uint256 _quoteTokenQtyDesired,
         uint256 _baseTokenQtyMin,
+        uint256 _quoteTokenQtyMin,
         address _liquidityTokenRecipient,
         uint256 _expirationTimestamp
     ) external nonReentrant() {
@@ -97,19 +97,19 @@ contract Exchange is ERC20, ReentrancyGuard {
 
         MathLib.TokenQtys memory tokenQtys =
             MathLib.calculateAddLiquidityQuantities(
-                _quoteTokenQtyDesired,
                 _baseTokenQtyDesired,
-                _quoteTokenQtyMin,
+                _quoteTokenQtyDesired,
                 _baseTokenQtyMin,
-                IERC20(quoteToken).balanceOf(address(this)),
+                _quoteTokenQtyMin,
                 IERC20(baseToken).balanceOf(address(this)),
+                IERC20(quoteToken).balanceOf(address(this)),
                 this.totalSupply(),
                 internalBalances
             );
 
         internalBalances.kLast =
-            internalBalances.quoteTokenReserveQty *
-            internalBalances.baseTokenReserveQty;
+            internalBalances.baseTokenReserveQty *
+            internalBalances.quoteTokenReserveQty;
 
         if (tokenQtys.liquidityTokenFeeQty > 0) {
             // mint liquidity tokens to fee address for k growth.
@@ -120,70 +120,70 @@ contract Exchange is ERC20, ReentrancyGuard {
         }
         _mint(_liquidityTokenRecipient, tokenQtys.liquidityTokenQty); // mint liquidity tokens to recipient
 
-        if (tokenQtys.quoteTokenQty != 0) {
-            bool isExchangeEmpty =
-                IERC20(quoteToken).balanceOf(address(this)) == 0;
-
-            // transfer quote tokens to Exchange
-            IERC20(quoteToken).safeTransferFrom(
-                msg.sender,
-                address(this),
-                tokenQtys.quoteTokenQty
-            );
-
-            if (isExchangeEmpty) {
-                require(
-                    IERC20(quoteToken).balanceOf(address(this)) ==
-                        tokenQtys.quoteTokenQty,
-                    "Exchange: FEE_ON_TRANSFER_NOT_SUPPORTED"
-                );
-            }
-        }
-
         if (tokenQtys.baseTokenQty != 0) {
+            bool isExchangeEmpty =
+                IERC20(baseToken).balanceOf(address(this)) == 0;
+
             // transfer base tokens to Exchange
             IERC20(baseToken).safeTransferFrom(
                 msg.sender,
                 address(this),
                 tokenQtys.baseTokenQty
             );
+
+            if (isExchangeEmpty) {
+                require(
+                    IERC20(baseToken).balanceOf(address(this)) ==
+                        tokenQtys.baseTokenQty,
+                    "Exchange: FEE_ON_TRANSFER_NOT_SUPPORTED"
+                );
+            }
+        }
+
+        if (tokenQtys.quoteTokenQty != 0) {
+            // transfer quote tokens to Exchange
+            IERC20(quoteToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                tokenQtys.quoteTokenQty
+            );
         }
 
         emit AddLiquidity(
             msg.sender,
-            tokenQtys.quoteTokenQty,
-            tokenQtys.baseTokenQty
+            tokenQtys.baseTokenQty,
+            tokenQtys.quoteTokenQty
         );
     }
 
     /**
      * @notice called by a liquidity provider to redeem liquidity tokens from the exchange and receive back
-     * quote and base tokens. Required approvals to be granted to this exchange for the liquidity token
+     * base and quote tokens. Required approvals to be granted to this exchange for the liquidity token
      * @param _liquidityTokenQty qty of liquidity tokens that you would like to redeem
-     * @param _quoteTokenQtyMin minimum acceptable qty of quote tokens to receive back (or transaction will revert)
      * @param _baseTokenQtyMin minimum acceptable qty of base tokens to receive back (or transaction will revert)
-     * @param _tokenRecipient address for the exchange to issue the resulting quote and
-     * base tokens from this transaction to
+     * @param _quoteTokenQtyMin minimum acceptable qty of quote tokens to receive back (or transaction will revert)
+     * @param _tokenRecipient address for the exchange to issue the resulting base and
+     * quote tokens from this transaction to
      * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
      */
     function removeLiquidity(
         uint256 _liquidityTokenQty,
-        uint256 _quoteTokenQtyMin,
         uint256 _baseTokenQtyMin,
+        uint256 _quoteTokenQtyMin,
         address _tokenRecipient,
         uint256 _expirationTimestamp
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         require(this.totalSupply() > 0, "Exchange: INSUFFICIENT_LIQUIDITY");
         require(
-            _quoteTokenQtyMin > 0 && _baseTokenQtyMin > 0,
+            _baseTokenQtyMin > 0 && _quoteTokenQtyMin > 0,
             "Exchange: MINS_MUST_BE_GREATER_THAN_ZERO"
         );
 
-        uint256 quoteTokenReserveQty =
-            IERC20(quoteToken).balanceOf(address(this));
         uint256 baseTokenReserveQty =
             IERC20(baseToken).balanceOf(address(this));
+        uint256 quoteTokenReserveQty =
+            IERC20(quoteToken).balanceOf(address(this));
 
         uint256 totalSupplyOfLiquidityTokens = this.totalSupply();
         // calculate any DAO fees here.
@@ -196,42 +196,42 @@ contract Exchange is ERC20, ReentrancyGuard {
         // we need to factor this quantity in to any total supply before redemption
         totalSupplyOfLiquidityTokens += liquidityTokenFeeQty;
 
-        uint256 quoteTokenQtyToReturn =
-            (_liquidityTokenQty * quoteTokenReserveQty) /
-                totalSupplyOfLiquidityTokens;
         uint256 baseTokenQtyToReturn =
             (_liquidityTokenQty * baseTokenReserveQty) /
                 totalSupplyOfLiquidityTokens;
-
-        require(
-            quoteTokenQtyToReturn >= _quoteTokenQtyMin,
-            "Exchange: INSUFFICIENT_QUOTE_QTY"
-        );
+        uint256 quoteTokenQtyToReturn =
+            (_liquidityTokenQty * quoteTokenReserveQty) /
+                totalSupplyOfLiquidityTokens;
 
         require(
             baseTokenQtyToReturn >= _baseTokenQtyMin,
-            "Exchange: INSUFFICIENT_BASE_QTY"
+            "Exchange: INSUFFICIENT_base_QTY"
+        );
+
+        require(
+            quoteTokenQtyToReturn >= _quoteTokenQtyMin,
+            "Exchange: INSUFFICIENT_quote_QTY"
         );
 
         // this ensure that we are removing the equivalent amount of decay
         // when this person exits.
-        uint256 quoteTokenQtyToRemoveFromInternalAccounting =
-            (_liquidityTokenQty * internalBalances.quoteTokenReserveQty) /
+        uint256 baseTokenQtyToRemoveFromInternalAccounting =
+            (_liquidityTokenQty * internalBalances.baseTokenReserveQty) /
                 totalSupplyOfLiquidityTokens;
 
         internalBalances
-            .quoteTokenReserveQty -= quoteTokenQtyToRemoveFromInternalAccounting;
+            .baseTokenReserveQty -= baseTokenQtyToRemoveFromInternalAccounting;
 
         // We should ensure no possible overflow here.
-        if (baseTokenQtyToReturn > internalBalances.baseTokenReserveQty) {
-            internalBalances.baseTokenReserveQty = 0;
+        if (quoteTokenQtyToReturn > internalBalances.quoteTokenReserveQty) {
+            internalBalances.quoteTokenReserveQty = 0;
         } else {
-            internalBalances.baseTokenReserveQty -= baseTokenQtyToReturn;
+            internalBalances.quoteTokenReserveQty -= quoteTokenQtyToReturn;
         }
 
         internalBalances.kLast =
-            internalBalances.quoteTokenReserveQty *
-            internalBalances.baseTokenReserveQty;
+            internalBalances.baseTokenReserveQty *
+            internalBalances.quoteTokenReserveQty;
 
         if (liquidityTokenFeeQty > 0) {
             _mint(
@@ -241,50 +241,13 @@ contract Exchange is ERC20, ReentrancyGuard {
         }
 
         _burn(msg.sender, _liquidityTokenQty);
-        IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
         IERC20(baseToken).safeTransfer(_tokenRecipient, baseTokenQtyToReturn);
+        IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
         emit RemoveLiquidity(
             msg.sender,
-            quoteTokenQtyToReturn,
-            baseTokenQtyToReturn
+            baseTokenQtyToReturn,
+            quoteTokenQtyToReturn
         );
-    }
-
-    /**
-     * @notice swaps quote tokens for a minimum amount of base tokens.  Fees are included in all transactions.
-     * The exchange must be granted approvals for the quote token by the caller.
-     * @param _quoteTokenQty qty of quote tokens to swap
-     * @param _minBaseTokenQty minimum qty of base tokens to receive in exchange for
-     * your quote tokens (or the transaction will revert)
-     * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
-     */
-    function swapQuoteTokenForBaseToken(
-        uint256 _quoteTokenQty,
-        uint256 _minBaseTokenQty,
-        uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
-        require(
-            _quoteTokenQty > 0 && _minBaseTokenQty > 0,
-            "Exchange: INSUFFICIENT_TOKEN_QTY"
-        );
-
-        uint256 baseTokenQty =
-            MathLib.calculateBaseTokenQty(
-                _quoteTokenQty,
-                _minBaseTokenQty,
-                TOTAL_LIQUIDITY_FEE,
-                internalBalances
-            );
-
-        IERC20(quoteToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _quoteTokenQty
-        );
-
-        IERC20(baseToken).safeTransfer(msg.sender, baseTokenQty);
-        emit Swap(msg.sender, _quoteTokenQty, 0, 0, baseTokenQty);
     }
 
     /**
@@ -310,7 +273,6 @@ contract Exchange is ERC20, ReentrancyGuard {
             MathLib.calculateQuoteTokenQty(
                 _baseTokenQty,
                 _minQuoteTokenQty,
-                IERC20(quoteToken).balanceOf(address(this)),
                 TOTAL_LIQUIDITY_FEE,
                 internalBalances
             );
@@ -322,6 +284,44 @@ contract Exchange is ERC20, ReentrancyGuard {
         );
 
         IERC20(quoteToken).safeTransfer(msg.sender, quoteTokenQty);
-        emit Swap(msg.sender, 0, _baseTokenQty, quoteTokenQty, 0);
+        emit Swap(msg.sender, _baseTokenQty, 0, 0, quoteTokenQty);
+    }
+
+    /**
+     * @notice swaps quote tokens for a minimum amount of base tokens.  Fees are included in all transactions.
+     * The exchange must be granted approvals for the quote token by the caller.
+     * @param _quoteTokenQty qty of quote tokens to swap
+     * @param _minBaseTokenQty minimum qty of base tokens to receive in exchange for
+     * your quote tokens (or the transaction will revert)
+     * @param _expirationTimestamp timestamp that this transaction must occur before (or transaction will revert)
+     */
+    function swapQuoteTokenForBaseToken(
+        uint256 _quoteTokenQty,
+        uint256 _minBaseTokenQty,
+        uint256 _expirationTimestamp
+    ) external nonReentrant() {
+        isNotExpired(_expirationTimestamp);
+        require(
+            _quoteTokenQty > 0 && _minBaseTokenQty > 0,
+            "Exchange: INSUFFICIENT_TOKEN_QTY"
+        );
+
+        uint256 baseTokenQty =
+            MathLib.calculateBaseTokenQty(
+                _quoteTokenQty,
+                _minBaseTokenQty,
+                IERC20(baseToken).balanceOf(address(this)),
+                TOTAL_LIQUIDITY_FEE,
+                internalBalances
+            );
+
+        IERC20(quoteToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _quoteTokenQty
+        );
+
+        IERC20(baseToken).safeTransfer(msg.sender, baseTokenQty);
+        emit Swap(msg.sender, 0, _quoteTokenQty, baseTokenQty, 0);
     }
 }

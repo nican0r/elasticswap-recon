@@ -34,22 +34,22 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
      * @notice called to create a new erc20 token pair exchange
      * @param _name The human readable name of this pair (also used for the liquidity token name)
      * @param _symbol Shortened symbol for trading pair (also used for the liquidity token symbol)
-     * @param _quoteToken address of the ERC20 quote token in the pair. This token can have a fixed or elastic supply
-     * @param _baseToken address of the ERC20 base token in the pair. This token is assumed to have a fixed supply.
+     * @param _baseToken address of the ERC20 base token in the pair. This token can have a fixed or elastic supply
+     * @param _quoteToken address of the ERC20 quote token in the pair. This token is assumed to have a fixed supply.
      */
     function createNewExchange(
         string memory _name,
         string memory _symbol,
-        address _quoteToken,
-        address _baseToken
+        address _baseToken,
+        address _quoteToken
     ) external {
-        require(_quoteToken != _baseToken, "ExchangeFactory: IDENTICAL_TOKENS");
+        require(_baseToken != _quoteToken, "ExchangeFactory: IDENTICAL_TOKENS");
         require(
-            _quoteToken != address(0) && _baseToken != address(0),
+            _baseToken != address(0) && _quoteToken != address(0),
             "ExchangeFactory: INVALID_TOKEN_ADDRESS"
         );
         require(
-            exchangeAddressByTokenAddress[_quoteToken][_baseToken] ==
+            exchangeAddressByTokenAddress[_baseToken][_quoteToken] ==
                 address(0),
             "ExchangeFactory: DUPLICATE_EXCHANGE"
         );
@@ -58,12 +58,12 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
             new Exchange(
                 _name,
                 _symbol,
-                _quoteToken,
                 _baseToken,
+                _quoteToken,
                 address(this)
             );
 
-        exchangeAddressByTokenAddress[_quoteToken][_baseToken] = address(
+        exchangeAddressByTokenAddress[_baseToken][_quoteToken] = address(
             exchange
         );
         isValidExchangeAddress[address(exchange)] = true;

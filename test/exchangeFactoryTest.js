@@ -3,12 +3,12 @@ const { ethers, deployments } = require("hardhat");
 
 describe("ExchangeFactory", () => {
   let exchangeFactory;
-  let quoteToken;
   let baseToken;
+  let quoteToken;
   let accounts;
   let deployer;
 
-  const name = "Base Quote Pair";
+  const name = "quote base Pair";
   const symbol = "BvQ";
 
   beforeEach(async () => {
@@ -22,17 +22,17 @@ describe("ExchangeFactory", () => {
       accounts[0]
     );
 
-    const QuoteToken = await deployments.get("QuoteToken");
-    quoteToken = new ethers.Contract(
-      QuoteToken.address,
-      QuoteToken.abi,
-      accounts[0]
-    );
-
     const BaseToken = await deployments.get("BaseToken");
     baseToken = new ethers.Contract(
       BaseToken.address,
       BaseToken.abi,
+      accounts[0]
+    );
+
+    const QuoteToken = await deployments.get("QuoteToken");
+    quoteToken = new ethers.Contract(
+      QuoteToken.address,
+      QuoteToken.abi,
       accounts[0]
     );
   });
@@ -60,11 +60,11 @@ describe("ExchangeFactory", () => {
     it("Should deploy a new exchange and add to mappings", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
       const exchangeAddress =
         await exchangeFactory.exchangeAddressByTokenAddress(
-          quoteToken.address,
-          baseToken.address
+          baseToken.address,
+          quoteToken.address
         );
       expect(
         await exchangeFactory.isValidExchangeAddress(exchangeAddress)
@@ -74,11 +74,11 @@ describe("ExchangeFactory", () => {
     it("Should deploy a new exchange with correct name, symbol and addresses", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
       const exchangeAddress =
         await exchangeFactory.exchangeAddressByTokenAddress(
-          quoteToken.address,
-          baseToken.address
+          baseToken.address,
+          quoteToken.address
         );
 
       const Exchange = await deployments.get("EGT Exchange");
@@ -90,8 +90,8 @@ describe("ExchangeFactory", () => {
 
       expect(await exchange.name()).to.equal(name);
       expect(await exchange.symbol()).to.equal(symbol);
-      expect(await exchange.baseToken()).to.equal(baseToken.address);
       expect(await exchange.quoteToken()).to.equal(quoteToken.address);
+      expect(await exchange.baseToken()).to.equal(baseToken.address);
     });
 
     it("Should deploy a new exchange and emit the correct ExchangeAdded event", async () => {
@@ -101,8 +101,8 @@ describe("ExchangeFactory", () => {
           .createNewExchange(
             name,
             symbol,
-            quoteToken.address,
-            baseToken.address
+            baseToken.address,
+            quoteToken.address
           )
       ).to.emit(exchangeFactory, "NewExchange");
     });
@@ -110,29 +110,24 @@ describe("ExchangeFactory", () => {
     it("Should revert when the same token pair is attempted to be added twice", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, quoteToken.address, baseToken.address);
+        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
       await expect(
         exchangeFactory
           .connect(deployer)
           .createNewExchange(
             name,
             symbol,
-            quoteToken.address,
-            baseToken.address
+            baseToken.address,
+            quoteToken.address
           )
       ).to.be.revertedWith("ExchangeFactory: DUPLICATE_EXCHANGE");
     });
 
-    it("Should revert when the same token is attempted to be used for both base and quote", async () => {
+    it("Should revert when the same token is attempted to be used for both quote and base", async () => {
       await expect(
         exchangeFactory
           .connect(deployer)
-          .createNewExchange(
-            name,
-            symbol,
-            quoteToken.address,
-            quoteToken.address
-          )
+          .createNewExchange(name, symbol, baseToken.address, baseToken.address)
       ).to.be.revertedWith("ExchangeFactory: IDENTICAL_TOKENS");
     });
 
@@ -143,7 +138,7 @@ describe("ExchangeFactory", () => {
           .createNewExchange(
             name,
             symbol,
-            quoteToken.address,
+            baseToken.address,
             ethers.constants.AddressZero
           )
       ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
@@ -155,7 +150,7 @@ describe("ExchangeFactory", () => {
             name,
             symbol,
             ethers.constants.AddressZero,
-            baseToken.address
+            quoteToken.address
           )
       ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
     });
