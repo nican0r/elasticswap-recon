@@ -591,7 +591,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapQuoteTokenForBaseToken(swapAmount, 1, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_TOKEN_QTY");
 
       // create liquidity
       await exchange
@@ -646,7 +646,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapQuoteTokenForBaseToken(swapAmount, 1, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_TOKEN_QTY");
     });
 
     it("Should revert when user supplied minimums are zero", async () => {
@@ -976,7 +976,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapQuoteTokenForBaseToken(swapAmount, swapAmount * 2, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_TOKEN_QTY");
 
       // this should not revert since we aren't asking for a large min base token qty back
       await exchange
@@ -1513,7 +1513,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapBaseTokenForQuoteToken(baseTokenQtyToTrade, 1, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_quote_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY");
 
       // create liquidity
       await exchange
@@ -1564,7 +1564,7 @@ describe("Exchange", () => {
         exchange
           .connect(trader)
           .swapBaseTokenForQuoteToken(baseTokenQtyToTrade, 1, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_quote_TOKEN_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY");
     });
 
     it("Should handle unexpected increase in quote tokens", async () => {

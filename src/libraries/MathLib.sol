@@ -345,7 +345,7 @@ library MathLib {
         // this may be redundant quoted on the above math, but will check to ensure the decay wasn't so small
         // that it was <1 and rounded down to 0 saving the caller some gas
         // also could fix a potential revert due to div by zero.
-        require(quoteTokenDecay > 0, "MathLib: NO_quote_DECAY");
+        require(quoteTokenDecay > 0, "MathLib: NO_QUOTE_DECAY");
 
         // we are not changing anything about our internal accounting here. We are simply adding tokens
         // to make our internal account "right"...or rather getting the external balances to match our internal
@@ -606,7 +606,7 @@ library MathLib {
         require(
             _baseTokenReserveQty > 0 &&
                 _internalBalances.baseTokenReserveQty > 0,
-            "MathLib: INSUFFICIENT_base_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
         // check to see if we have experience quote token decay / a rebase down event
@@ -639,7 +639,7 @@ library MathLib {
 
         require(
             baseTokenQty > _baseTokenQtyMin,
-            "MathLib: INSUFFICIENT_base_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
         _internalBalances.baseTokenReserveQty -= baseTokenQty;
@@ -675,7 +675,7 @@ library MathLib {
 
         require(
             quoteTokenQty > _quoteTokenQtyMin,
-            "MathLib: INSUFFICIENT_quote_TOKEN_QTY"
+            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
         );
 
         _internalBalances.baseTokenReserveQty += _baseTokenQty;
