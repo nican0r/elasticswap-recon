@@ -205,12 +205,12 @@ contract Exchange is ERC20, ReentrancyGuard {
 
         require(
             baseTokenQtyToReturn >= _baseTokenQtyMin,
-            "Exchange: INSUFFICIENT_base_QTY"
+            "Exchange: INSUFFICIENT_BASE_QTY"
         );
 
         require(
             quoteTokenQtyToReturn >= _quoteTokenQtyMin,
-            "Exchange: INSUFFICIENT_quote_QTY"
+            "Exchange: INSUFFICIENT_QUOTE_QTY"
         );
 
         // this ensure that we are removing the equivalent amount of decay

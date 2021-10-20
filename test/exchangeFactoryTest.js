@@ -9,7 +9,7 @@ describe("ExchangeFactory", () => {
   let deployer;
 
   const name = "quote base Pair";
-  const symbol = "BvQ";
+  const symbol = "QvB";
 
   beforeEach(async () => {
     accounts = await ethers.getSigners();

@@ -2971,7 +2971,7 @@ describe("Exchange", () => {
     });
 
     it("Should handle trivial amounts of quote token decay properly (issue 1)", async () => {
-      // trivial amount of quote token decay with our quote token being a fractional amount ouf our base
+      // trivial amount of quote token decay with our quote token being a fractional amount of our base
       // token... (ie omega < 1)
 
       // create expiration 50 minutes from now.
@@ -3142,7 +3142,7 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_quote_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY");
     });
 
     it("Should revert if minimum quote token amount isn't satisfied when decay is not present", async () => {
@@ -3196,7 +3196,7 @@ describe("Exchange", () => {
         exchange
           .connect(liquidityProvider2)
           .addLiquidity(5, 50, 1, 50, liquidityProvider2.address, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_quote_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY");
     });
 
     it("Should revert if minimum base token amount isn't satisfied when decay is present", async () => {
@@ -3254,7 +3254,7 @@ describe("Exchange", () => {
           liquidityProvider2.address,
           expiration
         )
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY");
     });
 
     it("Should revert if minimum base token amount isn't satisfied when decay is not present", async () => {
@@ -3303,7 +3303,7 @@ describe("Exchange", () => {
         exchange
           .connect(liquidityProvider2)
           .addLiquidity(20, 50, 15, 1, liquidityProvider2.address, expiration)
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_QTY");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY");
     });
 
     it("Should revert when _expirationTimestamp is expired", async () => {
@@ -3407,7 +3407,7 @@ describe("Exchange", () => {
           liquidityProvider.address,
           expiration
         )
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_base_QTY_DESIRED");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_BASE_QTY_DESIRED");
 
       // add tokens to a pricing curve is established.
       await exchange.connect(liquidityProvider).addLiquidity(
@@ -3474,7 +3474,7 @@ describe("Exchange", () => {
           liquidityProvider.address,
           expiration
         )
-      ).to.be.revertedWith("MathLib: INSUFFICIENT_quote_QTY_DESIRED");
+      ).to.be.revertedWith("MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED");
 
       // add tokens to a pricing curve is established.
       await exchange.connect(liquidityProvider).addLiquidity(
@@ -4574,7 +4574,7 @@ describe("Exchange", () => {
             liquidityProvider.address,
             expiration
           )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_base_QTY");
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_QTY");
 
       // attempt the transaction below which should not revert.
       await exchange
@@ -4643,7 +4643,7 @@ describe("Exchange", () => {
             liquidityProvider.address,
             expiration
           )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_quote_QTY");
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_QUOTE_QTY");
 
       // attempt the transaction below which should not revert.
       await exchange
@@ -4712,7 +4712,7 @@ describe("Exchange", () => {
             liquidityProvider.address,
             expiration
           )
-      ).to.be.revertedWith("Exchange: INSUFFICIENT_base_QTY");
+      ).to.be.revertedWith("Exchange: INSUFFICIENT_BASE_QTY");
     });
 
     it("Should mint liquidity tokens to feeAddress after trades have occurred", async () => {

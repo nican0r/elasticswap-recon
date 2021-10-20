@@ -456,12 +456,12 @@ library MathLib {
 
                 require(
                     tokenQtys.baseTokenQty >= _baseTokenQtyMin,
-                    "MathLib: INSUFFICIENT_base_QTY"
+                    "MathLib: INSUFFICIENT_BASE_QTY"
                 );
 
                 require(
                     tokenQtys.quoteTokenQty >= _quoteTokenQtyMin,
-                    "MathLib: INSUFFICIENT_quote_QTY"
+                    "MathLib: INSUFFICIENT_QUOTE_QTY"
                 );
             } else {
                 // the user is just doing a simple double asset entry / providing both base and quote.
@@ -484,11 +484,11 @@ library MathLib {
             // this user will set the initial pricing curve
             require(
                 _baseTokenQtyDesired > 0,
-                "MathLib: INSUFFICIENT_base_QTY_DESIRED"
+                "MathLib: INSUFFICIENT_BASE_QTY_DESIRED"
             );
             require(
                 _quoteTokenQtyDesired > 0,
-                "MathLib: INSUFFICIENT_quote_QTY_DESIRED"
+                "MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED"
             );
 
             tokenQtys.baseTokenQty = _baseTokenQtyDesired;
@@ -547,7 +547,7 @@ library MathLib {
             // user has to provide less than their desired amount
             require(
                 requiredQuoteTokenQty >= _quoteTokenQtyMin,
-                "MathLib: INSUFFICIENT_quote_QTY"
+                "MathLib: INSUFFICIENT_QUOTE_QTY"
             );
             baseTokenQty = _baseTokenQtyDesired;
             quoteTokenQty = requiredQuoteTokenQty;
@@ -570,7 +570,7 @@ library MathLib {
 
             require(
                 requiredbaseTokenQty >= _baseTokenQtyMin,
-                "MathLib: INSUFFICIENT_base_QTY"
+                "MathLib: INSUFFICIENT_BASE_QTY"
             );
             baseTokenQty = requiredbaseTokenQty;
             quoteTokenQty = _quoteTokenQtyDesired;
