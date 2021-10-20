@@ -5,8 +5,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const initialSupply = 1000000000000;
   const deployResult = await deploy("QuoteToken", {
     from: admin,
-    contract: "ElasticMock",
-    args: ["ElasticTokenMock", "ETM", initialSupply, admin],
+    contract: "ERC20PresetFixedSupply",
+    args: ["Fake-USD", "FUSD", initialSupply, admin],
   });
   if (deployResult.newlyDeployed) {
     log(

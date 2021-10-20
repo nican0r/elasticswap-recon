@@ -157,14 +157,14 @@ describe("MathLib", () => {
   describe("calculateLiquidityTokenQtyForDoubleAssetEntry", () => {
     it("Should return the correct qty of liquidity tokens", async () => {
       const totalSupplyOfLiquidityTokens = 50;
-      const baseTokenBalance = 50;
-      const baseTokenQtyToAdd = 15;
+      const quoteTokenBalance = 50;
+      const quoteTokenQtyToAdd = 15;
 
       expect(
         await mathLib.calculateLiquidityTokenQtyForDoubleAssetEntry(
           totalSupplyOfLiquidityTokens,
-          baseTokenQtyToAdd,
-          baseTokenBalance
+          quoteTokenQtyToAdd,
+          quoteTokenBalance
         )
       ).to.equal(15);
     });
@@ -220,7 +220,7 @@ describe("MathLib", () => {
 
     it("Should return the correct qty of liquidity tokens with a rebase up", async () => {
       // Scenario: We have 1000:5000 A:B or X:Y, a rebase up occurs (of 500 tokens)
-      // and a user needs to add 2500 base tokens to remove the quote decay
+      // and a user needs to add 2500 quote tokens to remove the base decay
       const totalSupplyOfLiquidityTokens = 5000;
       const tokenAQtyToAdd = 2500;
       const tokenAInternalReserveQtyAfterTransaction = 7500; // 5000 + 2500 to offset rebase up

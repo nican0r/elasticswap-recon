@@ -13,15 +13,15 @@ library MathLib {
         // x*y=k - we track these internally to compare to actual balances of the ERC20's
         // in order to calculate the "decay" or the amount of balances that are not
         // participating in the pricing curve and adding additional liquidity to swap.
-        uint256 quoteTokenReserveQty; // x
-        uint256 baseTokenReserveQty; // y
+        uint256 baseTokenReserveQty; // x
+        uint256 quoteTokenReserveQty; // y
         uint256 kLast; // as of the last add / rem liquidity event
     }
 
     // aids in avoiding stack too deep errors.
     struct TokenQtys {
-        uint256 quoteTokenQty;
         uint256 baseTokenQty;
+        uint256 quoteTokenQty;
         uint256 liquidityTokenQty;
         uint256 liquidityTokenFeeQty;
     }
@@ -95,30 +95,28 @@ library MathLib {
 
     /**
      * @dev defines the amount of decay needed in order for us to require a user to handle the
-     * decay prior to a double asset entry as the equivalent of 1 unit of base token
+     * decay prior to a double asset entry as the equivalent of 1 unit of quote token
      */
     function isSufficientDecayPresent(
-        uint256 _quoteTokenReserveQty,
+        uint256 _baseTokenReserveQty,
         InternalBalances memory _internalBalances
     ) public pure returns (bool) {
         return (wDiv(
-            diff(
-                _quoteTokenReserveQty,
-                _internalBalances.quoteTokenReserveQty
-            ) * WAD,
+            diff(_baseTokenReserveQty, _internalBalances.baseTokenReserveQty) *
+                WAD,
             wDiv(
-                _internalBalances.quoteTokenReserveQty,
-                _internalBalances.baseTokenReserveQty
+                _internalBalances.baseTokenReserveQty,
+                _internalBalances.quoteTokenReserveQty
             )
-        ) >= WAD); // the amount of quote token (a) decay is greater than 1 unit of base token (token b)
+        ) >= WAD); // the amount of base token (a) decay is greater than 1 unit of quote token (token b)
     }
 
     /**
      * @dev used to calculate the qty of token a liquidity provider
      * must add in order to maintain the current reserve ratios
-     * @param _tokenAQty quote or base token qty to be supplied by the liquidity provider
-     * @param _tokenAReserveQty current reserve qty of the quote or base token (same token as tokenA)
-     * @param _tokenBReserveQty current reserve qty of the other quote or base token (not tokenA)
+     * @param _tokenAQty base or quote token qty to be supplied by the liquidity provider
+     * @param _tokenAReserveQty current reserve qty of the base or quote token (same token as tokenA)
+     * @param _tokenBReserveQty current reserve qty of the other base or quote token (not tokenA)
      */
     function calculateQty(
         uint256 _tokenAQty,
@@ -136,9 +134,9 @@ library MathLib {
     /**
      * @dev used to calculate the qty of token a trader will receive (less fees)
      * given the qty of token A they are providing
-     * @param _tokenASwapQty quote or base token qty to be swapped by the trader
-     * @param _tokenAReserveQty current reserve qty of the quote or base token (same token as tokenA)
-     * @param _tokenBReserveQty current reserve qty of the other quote or base token (not tokenA)
+     * @param _tokenASwapQty base or quote token qty to be swapped by the trader
+     * @param _tokenAReserveQty current reserve qty of the base or quote token (same token as tokenA)
+     * @param _tokenBReserveQty current reserve qty of the other base or quote token (not tokenA)
      * @param _liquidityFeeInBasisPoints fee to liquidity providers represented in basis points
      */
     function calculateQtyToReturnAfterFees(
@@ -199,113 +197,55 @@ library MathLib {
      * @dev used to calculate the qty of liquidity tokens (deltaRo) we will be issued to a supplier
      * of a single asset entry when decay is present.
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
-     * @param _baseTokenQty the amount of base token the user it adding to the pool (deltaB or deltaY)
-     * @param _baseTokenReserveBalance the total balance (external) of base tokens in our pool (Beta)
+     * @param _quoteTokenQty the amount of quote token the user it adding to the pool (deltaB or deltaY)
+     * @param _quoteTokenReserveBalance the total balance (external) of quote tokens in our pool (Beta)
      *
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
     function calculateLiquidityTokenQtyForDoubleAssetEntry(
         uint256 _totalSupplyOfLiquidityTokens,
-        uint256 _baseTokenQty,
-        uint256 _baseTokenReserveBalance
+        uint256 _quoteTokenQty,
+        uint256 _quoteTokenReserveBalance
     ) public pure returns (uint256 liquidityTokenQty) {
         liquidityTokenQty =
-            (_baseTokenQty * _totalSupplyOfLiquidityTokens) /
-            _baseTokenReserveBalance;
+            (_quoteTokenQty * _totalSupplyOfLiquidityTokens) /
+            _quoteTokenReserveBalance;
     }
 
     /**
-     * @dev used to calculate the qty of base token required and liquidity tokens (deltaRo) to be issued
-     * in order to add liquidity and remove quote token decay.
-     * @param _baseTokenQtyDesired the amount of base token the user wants to contribute
-     * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
-     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
-     * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
-     * @param _internalBalances internal balances struct from our exchange's internal accounting
-     *
-     *
-     * @return baseTokenQty qty of base token the user must supply
-     * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
-     */
-    function calculateAddBaseTokenLiquidityQuantities(
-        uint256 _baseTokenQtyDesired,
-        uint256 _baseTokenQtyMin,
-        uint256 _quoteTokenReserveQty,
-        uint256 _totalSupplyOfLiquidityTokens,
-        InternalBalances storage _internalBalances
-    ) public returns (uint256 baseTokenQty, uint256 liquidityTokenQty) {
-        uint256 quoteTokenDecay =
-            _quoteTokenReserveQty - _internalBalances.quoteTokenReserveQty;
-
-        // determine max amount of base token that can be added to offset the current decay
-        uint256 wInternalQuoteTokenToBaseTokenRatio =
-            wDiv(
-                _internalBalances.quoteTokenReserveQty,
-                _internalBalances.baseTokenReserveQty
-            );
-
-        // alphaDecay / omega (A/B)
-        uint256 maxBaseTokenQty =
-            wDiv(quoteTokenDecay, wInternalQuoteTokenToBaseTokenRatio);
-
-        require(
-            _baseTokenQtyMin < maxBaseTokenQty,
-            "MathLib: INSUFFICIENT_DECAY"
-        );
-
-        if (_baseTokenQtyDesired > maxBaseTokenQty) {
-            baseTokenQty = maxBaseTokenQty;
-        } else {
-            baseTokenQty = _baseTokenQtyDesired;
-        }
-
-        uint256 quoteTokenQtyDecayChange =
-            roundToNearest(
-                (baseTokenQty * wInternalQuoteTokenToBaseTokenRatio),
-                WAD
-            ) / WAD;
-
-        require(
-            quoteTokenQtyDecayChange > 0,
-            "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
-        );
-        //x += alphaDecayChange
-        //y += deltaBeta
-        _internalBalances.quoteTokenReserveQty += quoteTokenQtyDecayChange;
-        _internalBalances.baseTokenReserveQty += baseTokenQty;
-
-        // calculate the number of liquidity tokens to return to user using
-        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntry(
-            _totalSupplyOfLiquidityTokens,
-            baseTokenQty,
-            _internalBalances.baseTokenReserveQty,
-            quoteTokenQtyDecayChange,
-            quoteTokenDecay
-        );
-        return (baseTokenQty, liquidityTokenQty);
-    }
-
-    /**
-     * @dev used to calculate the qty of quote tokens required and liquidity tokens (deltaRo) to be issued
-     * in order to add liquidity and remove quote token decay.
+     * @dev used to calculate the qty of quote token required and liquidity tokens (deltaRo) to be issued
+     * in order to add liquidity and remove base token decay.
      * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
      * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
-     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
+     * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
+     *
      *
      * @return quoteTokenQty qty of quote token the user must supply
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
-    function calculateAddQuoteTokenLiquidityQuantities(
+    function calculateAddquoteTokenLiquidityQuantities(
         uint256 _quoteTokenQtyDesired,
         uint256 _quoteTokenQtyMin,
-        uint256 _quoteTokenReserveQty,
+        uint256 _baseTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
-        InternalBalances memory _internalBalances
-    ) public pure returns (uint256 quoteTokenQty, uint256 liquidityTokenQty) {
+        InternalBalances storage _internalBalances
+    ) public returns (uint256 quoteTokenQty, uint256 liquidityTokenQty) {
+        uint256 baseTokenDecay =
+            _baseTokenReserveQty - _internalBalances.baseTokenReserveQty;
+
+        // determine max amount of quote token that can be added to offset the current decay
+        uint256 wInternalBaseTokenToQuoteTokenRatio =
+            wDiv(
+                _internalBalances.baseTokenReserveQty,
+                _internalBalances.quoteTokenReserveQty
+            );
+
+        // alphaDecay / omega (A/B)
         uint256 maxQuoteTokenQty =
-            _internalBalances.quoteTokenReserveQty - _quoteTokenReserveQty;
+            wDiv(baseTokenDecay, wInternalBaseTokenToQuoteTokenRatio);
+
         require(
             _quoteTokenQtyMin < maxQuoteTokenQty,
             "MathLib: INSUFFICIENT_DECAY"
@@ -317,44 +257,22 @@ library MathLib {
             quoteTokenQty = _quoteTokenQtyDesired;
         }
 
-        // determine the base token qty decay change based on our current ratios
-        uint256 wInternalBaseToQuoteTokenRatio =
-            wDiv(
-                _internalBalances.baseTokenReserveQty,
-                _internalBalances.quoteTokenReserveQty
-            );
-
-        // NOTE we need this function to use the same
-        // rounding scheme as wDiv in order to avoid a case
-        // in which a user is trying to resolve decay in which
-        // baseTokenQtyDecayChange ends up being 0 and we are stuck in
-        // a bad state.
         uint256 baseTokenQtyDecayChange =
             roundToNearest(
-                (quoteTokenQty * wInternalBaseToQuoteTokenRatio),
-                MathLib.WAD
+                (quoteTokenQty * wInternalBaseTokenToQuoteTokenRatio),
+                WAD
             ) / WAD;
 
         require(
             baseTokenQtyDecayChange > 0,
             "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
         );
+        //x += alphaDecayChange
+        //y += deltaBeta
+        _internalBalances.baseTokenReserveQty += baseTokenQtyDecayChange;
+        _internalBalances.quoteTokenReserveQty += quoteTokenQty;
 
-        // we can now calculate the total amount of base token decay
-        uint256 baseTokenDecay =
-            (maxQuoteTokenQty * wInternalBaseToQuoteTokenRatio) / WAD;
-
-        // this may be redundant based on the above math, but will check to ensure the decay wasn't so small
-        // that it was <1 and rounded down to 0 saving the caller some gas
-        // also could fix a potential revert due to div by zero.
-        require(baseTokenDecay > 0, "MathLib: NO_BASE_DECAY");
-
-        // we are not changing anything about our internal accounting here. We are simply adding tokens
-        // to make our internal account "right"...or rather getting the external balances to match our internal
-        // baseTokenReserveQty += baseTokenQtyDecayChange;
-        // quoteTokenReserveQty += quoteTokenQty;
-
-        // calculate the number of liquidity tokens to return to user using:
+        // calculate the number of liquidity tokens to return to user using
         liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntry(
             _totalSupplyOfLiquidityTokens,
             quoteTokenQty,
@@ -365,13 +283,93 @@ library MathLib {
         return (quoteTokenQty, liquidityTokenQty);
     }
 
-    function calculateAddLiquidityQuantities(
-        uint256 _quoteTokenQtyDesired,
+    /**
+     * @dev used to calculate the qty of base tokens required and liquidity tokens (deltaRo) to be issued
+     * in order to add liquidity and remove base token decay.
+     * @param _baseTokenQtyDesired the amount of base token the user wants to contribute
+     * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
+     * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
+     * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
+     * @param _internalBalances internal balances struct from our exchange's internal accounting
+     *
+     * @return baseTokenQty qty of base token the user must supply
+     * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
+     */
+    function calculateAddbaseTokenLiquidityQuantities(
         uint256 _baseTokenQtyDesired,
-        uint256 _quoteTokenQtyMin,
         uint256 _baseTokenQtyMin,
-        uint256 _quoteTokenReserveQty,
         uint256 _baseTokenReserveQty,
+        uint256 _totalSupplyOfLiquidityTokens,
+        InternalBalances memory _internalBalances
+    ) public pure returns (uint256 baseTokenQty, uint256 liquidityTokenQty) {
+        uint256 maxBaseTokenQty =
+            _internalBalances.baseTokenReserveQty - _baseTokenReserveQty;
+        require(
+            _baseTokenQtyMin < maxBaseTokenQty,
+            "MathLib: INSUFFICIENT_DECAY"
+        );
+
+        if (_baseTokenQtyDesired > maxBaseTokenQty) {
+            baseTokenQty = maxBaseTokenQty;
+        } else {
+            baseTokenQty = _baseTokenQtyDesired;
+        }
+
+        // determine the quote token qty decay change quoted on our current ratios
+        uint256 wInternalQuoteToBaseTokenRatio =
+            wDiv(
+                _internalBalances.quoteTokenReserveQty,
+                _internalBalances.baseTokenReserveQty
+            );
+
+        // NOTE we need this function to use the same
+        // rounding scheme as wDiv in order to avoid a case
+        // in which a user is trying to resolve decay in which
+        // quoteTokenQtyDecayChange ends up being 0 and we are stuck in
+        // a bad state.
+        uint256 quoteTokenQtyDecayChange =
+            roundToNearest(
+                (baseTokenQty * wInternalQuoteToBaseTokenRatio),
+                MathLib.WAD
+            ) / WAD;
+
+        require(
+            quoteTokenQtyDecayChange > 0,
+            "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
+        );
+
+        // we can now calculate the total amount of quote token decay
+        uint256 quoteTokenDecay =
+            (maxBaseTokenQty * wInternalQuoteToBaseTokenRatio) / WAD;
+
+        // this may be redundant quoted on the above math, but will check to ensure the decay wasn't so small
+        // that it was <1 and rounded down to 0 saving the caller some gas
+        // also could fix a potential revert due to div by zero.
+        require(quoteTokenDecay > 0, "MathLib: NO_QUOTE_DECAY");
+
+        // we are not changing anything about our internal accounting here. We are simply adding tokens
+        // to make our internal account "right"...or rather getting the external balances to match our internal
+        // quoteTokenReserveQty += quoteTokenQtyDecayChange;
+        // baseTokenReserveQty += baseTokenQty;
+
+        // calculate the number of liquidity tokens to return to user using:
+        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntry(
+            _totalSupplyOfLiquidityTokens,
+            baseTokenQty,
+            _internalBalances.baseTokenReserveQty,
+            quoteTokenQtyDecayChange,
+            quoteTokenDecay
+        );
+        return (baseTokenQty, liquidityTokenQty);
+    }
+
+    function calculateAddLiquidityQuantities(
+        uint256 _baseTokenQtyDesired,
+        uint256 _quoteTokenQtyDesired,
+        uint256 _baseTokenQtyMin,
+        uint256 _quoteTokenQtyMin,
+        uint256 _baseTokenReserveQty,
+        uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
     ) public returns (TokenQtys memory tokenQtys) {
@@ -390,94 +388,93 @@ library MathLib {
             // if we do, we need to resolve that first
             if (
                 isSufficientDecayPresent(
-                    _quoteTokenReserveQty,
+                    _baseTokenReserveQty,
                     _internalBalances
                 )
             ) {
                 // decay is present and needs to be dealt with by the caller.
 
-                uint256 quoteTokenQtyFromDecay;
                 uint256 baseTokenQtyFromDecay;
+                uint256 quoteTokenQtyFromDecay;
                 uint256 liquidityTokenQtyFromDecay;
 
                 if (
-                    _quoteTokenReserveQty >
-                    _internalBalances.quoteTokenReserveQty
+                    _baseTokenReserveQty > _internalBalances.baseTokenReserveQty
                 ) {
-                    // we have more quote token than expected (quote token decay) due to rebase up
+                    // we have more base token than expected (base token decay) due to rebase up
                     // we first need to handle this situation by requiring this user
-                    // to add base tokens
+                    // to add quote tokens
                     (
-                        baseTokenQtyFromDecay,
+                        quoteTokenQtyFromDecay,
                         liquidityTokenQtyFromDecay
-                    ) = calculateAddBaseTokenLiquidityQuantities(
-                        _baseTokenQtyDesired,
-                        0, // there is no minimum for this particular call since we may use base tokens later.
-                        _quoteTokenReserveQty,
+                    ) = calculateAddquoteTokenLiquidityQuantities(
+                        _quoteTokenQtyDesired,
+                        0, // there is no minimum for this particular call since we may use quote tokens later.
+                        _baseTokenReserveQty,
                         _totalSupplyOfLiquidityTokens,
                         _internalBalances
                     );
                 } else {
-                    // we have less quote token than expected (base token decay) due to a rebase down
-                    // we first need to handle this by adding quote tokens to offset this.
+                    // we have less base token than expected (quote token decay) due to a rebase down
+                    // we first need to handle this by adding base tokens to offset this.
                     (
-                        quoteTokenQtyFromDecay,
+                        baseTokenQtyFromDecay,
                         liquidityTokenQtyFromDecay
-                    ) = calculateAddQuoteTokenLiquidityQuantities(
-                        _quoteTokenQtyDesired,
-                        0, // there is no minimum for this particular call since we may use quote tokens later.
-                        _quoteTokenReserveQty,
+                    ) = calculateAddbaseTokenLiquidityQuantities(
+                        _baseTokenQtyDesired,
+                        0, // there is no minimum for this particular call since we may use base tokens later.
+                        _baseTokenReserveQty,
                         _totalSupplyOfLiquidityTokens,
                         _internalBalances
                     );
                 }
 
                 if (
-                    baseTokenQtyFromDecay < _baseTokenQtyDesired &&
-                    quoteTokenQtyFromDecay < _quoteTokenQtyDesired
+                    quoteTokenQtyFromDecay < _quoteTokenQtyDesired &&
+                    baseTokenQtyFromDecay < _baseTokenQtyDesired
                 ) {
                     // the user still has qty that they desire to contribute to the exchange for liquidity
                     (
-                        tokenQtys.quoteTokenQty,
                         tokenQtys.baseTokenQty,
+                        tokenQtys.quoteTokenQty,
                         tokenQtys.liquidityTokenQty
                     ) = calculateAddTokenPairLiquidityQuantities(
-                        _quoteTokenQtyDesired - quoteTokenQtyFromDecay, // safe from underflow based on above IF
-                        _baseTokenQtyDesired - baseTokenQtyFromDecay, // safe from underflow based on above IF
+                        _baseTokenQtyDesired - baseTokenQtyFromDecay, // safe from underflow quoted on above IF
+                        _quoteTokenQtyDesired - quoteTokenQtyFromDecay, // safe from underflow quoted on above IF
                         0, // we will check minimums below
                         0, // we will check minimums below
-                        _baseTokenReserveQty + baseTokenQtyFromDecay,
+                        _quoteTokenReserveQty + quoteTokenQtyFromDecay,
                         _totalSupplyOfLiquidityTokens +
                             liquidityTokenQtyFromDecay,
                         _internalBalances, // NOTE: these balances have already been updated when we did the decay math.
                         false
                     );
                 }
-                tokenQtys.quoteTokenQty += quoteTokenQtyFromDecay;
                 tokenQtys.baseTokenQty += baseTokenQtyFromDecay;
+                tokenQtys.quoteTokenQty += quoteTokenQtyFromDecay;
                 tokenQtys.liquidityTokenQty += liquidityTokenQtyFromDecay;
-
-                require(
-                    tokenQtys.quoteTokenQty >= _quoteTokenQtyMin,
-                    "MathLib: INSUFFICIENT_QUOTE_QTY"
-                );
 
                 require(
                     tokenQtys.baseTokenQty >= _baseTokenQtyMin,
                     "MathLib: INSUFFICIENT_BASE_QTY"
                 );
+
+                require(
+                    tokenQtys.quoteTokenQty >= _quoteTokenQtyMin,
+                    "MathLib: INSUFFICIENT_QUOTE_QTY"
+                );
             } else {
-                // the user is just doing a simple double asset entry / providing both quote and base.
+                // the user is just doing a simple double asset entry / providing both base and quote.
                 (
-                    tokenQtys.quoteTokenQty,
                     tokenQtys.baseTokenQty,
+                    tokenQtys.quoteTokenQty,
                     tokenQtys.liquidityTokenQty
                 ) = calculateAddTokenPairLiquidityQuantities(
-                    _quoteTokenQtyDesired,
                     _baseTokenQtyDesired,
-                    _quoteTokenQtyMin,
+                    _quoteTokenQtyDesired,
                     _baseTokenQtyMin,
-                    _baseTokenReserveQty,
+                    _quoteTokenQtyMin,
+                    _quoteTokenReserveQty,
                     _totalSupplyOfLiquidityTokens,
                     _internalBalances,
                     true
@@ -486,84 +483,84 @@ library MathLib {
         } else {
             // this user will set the initial pricing curve
             require(
-                _quoteTokenQtyDesired > 0,
-                "MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED"
-            );
-            require(
                 _baseTokenQtyDesired > 0,
                 "MathLib: INSUFFICIENT_BASE_QTY_DESIRED"
             );
-
-            tokenQtys.quoteTokenQty = _quoteTokenQtyDesired;
-            tokenQtys.baseTokenQty = _baseTokenQtyDesired;
-            tokenQtys.liquidityTokenQty = sqrt(
-                _quoteTokenQtyDesired * _baseTokenQtyDesired
+            require(
+                _quoteTokenQtyDesired > 0,
+                "MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED"
             );
 
-            _internalBalances.quoteTokenReserveQty += tokenQtys.quoteTokenQty;
+            tokenQtys.baseTokenQty = _baseTokenQtyDesired;
+            tokenQtys.quoteTokenQty = _quoteTokenQtyDesired;
+            tokenQtys.liquidityTokenQty = sqrt(
+                _baseTokenQtyDesired * _quoteTokenQtyDesired
+            );
+
             _internalBalances.baseTokenReserveQty += tokenQtys.baseTokenQty;
+            _internalBalances.quoteTokenReserveQty += tokenQtys.quoteTokenQty;
         }
     }
 
     /**
-     * @dev calculates the qty of quote and base tokens required and liquidity tokens (deltaRo) to be issued
+     * @dev calculates the qty of base and quote tokens required and liquidity tokens (deltaRo) to be issued
      * in order to add liquidity when no decay is present.
-     * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
      * @param _baseTokenQtyDesired the amount of base token the user wants to contribute
-     * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
+     * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
      * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
-     * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
+     * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
+     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
-     * @param _throwOnBadRatio should the function assert if the ratio of _quoteTokenQtyDesired/_baseTokenQtyDesired
+     * @param _throwOnBadRatio should the function assert if the ratio of _baseTokenQtyDesired/_quoteTokenQtyDesired
      * cannot be honored. Otherwise will return 0s for all balances
      *
-     * @return quoteTokenQty qty of quote token the user must supply
      * @return baseTokenQty qty of base token the user must supply
+     * @return quoteTokenQty qty of quote token the user must supply
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
     function calculateAddTokenPairLiquidityQuantities(
-        uint256 _quoteTokenQtyDesired,
         uint256 _baseTokenQtyDesired,
-        uint256 _quoteTokenQtyMin,
+        uint256 _quoteTokenQtyDesired,
         uint256 _baseTokenQtyMin,
-        uint256 _baseTokenReserveQty,
+        uint256 _quoteTokenQtyMin,
+        uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances,
         bool _throwOnBadRatio
     )
         public
         returns (
-            uint256 quoteTokenQty,
             uint256 baseTokenQty,
+            uint256 quoteTokenQty,
             uint256 liquidityTokenQty
         )
     {
-        uint256 requiredBaseTokenQty =
+        uint256 requiredQuoteTokenQty =
             calculateQty(
-                _quoteTokenQtyDesired,
-                _internalBalances.quoteTokenReserveQty,
-                _internalBalances.baseTokenReserveQty
+                _baseTokenQtyDesired,
+                _internalBalances.baseTokenReserveQty,
+                _internalBalances.quoteTokenReserveQty
             );
 
-        if (requiredBaseTokenQty <= _baseTokenQtyDesired) {
+        if (requiredQuoteTokenQty <= _quoteTokenQtyDesired) {
             // user has to provide less than their desired amount
             require(
-                requiredBaseTokenQty >= _baseTokenQtyMin,
-                "MathLib: INSUFFICIENT_BASE_QTY"
+                requiredQuoteTokenQty >= _quoteTokenQtyMin,
+                "MathLib: INSUFFICIENT_QUOTE_QTY"
             );
-            quoteTokenQty = _quoteTokenQtyDesired;
-            baseTokenQty = requiredBaseTokenQty;
+            baseTokenQty = _baseTokenQtyDesired;
+            quoteTokenQty = requiredQuoteTokenQty;
         } else {
             // we need to check the opposite way.
-            uint256 requiredQuoteTokenQty =
+            uint256 requiredbaseTokenQty =
                 calculateQty(
-                    _baseTokenQtyDesired,
-                    _internalBalances.baseTokenReserveQty,
-                    _internalBalances.quoteTokenReserveQty
+                    _quoteTokenQtyDesired,
+                    _internalBalances.quoteTokenReserveQty,
+                    _internalBalances.baseTokenReserveQty
                 );
-            // assert(requiredQuoteTokenQty <= _quoteTokenQtyDesired);
-            if (requiredQuoteTokenQty > _quoteTokenQtyDesired) {
+            // assert(requiredbaseTokenQty <= _baseTokenQtyDesired);
+            if (requiredbaseTokenQty > _baseTokenQtyDesired) {
                 if (_throwOnBadRatio) {
                     assert(false); //should this really be an assert vs require?
                 } else {
@@ -572,87 +569,28 @@ library MathLib {
             }
 
             require(
-                requiredQuoteTokenQty >= _quoteTokenQtyMin,
-                "MathLib: INSUFFICIENT_QUOTE_QTY"
+                requiredbaseTokenQty >= _baseTokenQtyMin,
+                "MathLib: INSUFFICIENT_BASE_QTY"
             );
-            quoteTokenQty = requiredQuoteTokenQty;
-            baseTokenQty = _baseTokenQtyDesired;
+            baseTokenQty = requiredbaseTokenQty;
+            quoteTokenQty = _quoteTokenQtyDesired;
         }
 
         liquidityTokenQty = calculateLiquidityTokenQtyForDoubleAssetEntry(
             _totalSupplyOfLiquidityTokens,
-            baseTokenQty,
-            _baseTokenReserveQty
+            quoteTokenQty,
+            _quoteTokenReserveQty
         );
 
-        _internalBalances.quoteTokenReserveQty += quoteTokenQty;
         _internalBalances.baseTokenReserveQty += baseTokenQty;
-    }
-
-    /**
-     * @dev calculates the qty of quote tokens a user will receive for swapping their base tokens (less fees)
-     * @param _baseTokenQty the amount of base tokens the user wants to swap
-     * @param _quoteTokenQtyMin the minimum about of quote tokens they are willing to receive in return (slippage)
-     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
-     * @param _liquidityFeeInBasisPoints the current total liquidity fee represented as an integer of basis points
-     * @param _internalBalances internal balances struct from our exchange's internal accounting
-     *
-     * @return quoteTokenQty qty of quote token the user will receive back
-     */
-    function calculateQuoteTokenQty(
-        uint256 _baseTokenQty,
-        uint256 _quoteTokenQtyMin,
-        uint256 _quoteTokenReserveQty,
-        uint256 _liquidityFeeInBasisPoints,
-        InternalBalances storage _internalBalances
-    ) public returns (uint256 quoteTokenQty) {
-        require(
-            _quoteTokenReserveQty > 0 &&
-                _internalBalances.quoteTokenReserveQty > 0,
-            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
-        );
-
-        // check to see if we have experience base token decay / a rebase down event
-        if (_quoteTokenReserveQty < _internalBalances.quoteTokenReserveQty) {
-            // we have less reserves than our current price curve will expect, we need to adjust the curve
-            uint256 wPricingRatio =
-                wDiv(
-                    _internalBalances.quoteTokenReserveQty,
-                    _internalBalances.baseTokenReserveQty
-                ); // omega
-
-            uint256 impliedBaseTokenQty =
-                wDiv(_quoteTokenReserveQty, wPricingRatio); // no need to divide by WAD, wPricingRatio is already a WAD.
-
-            quoteTokenQty = calculateQtyToReturnAfterFees(
-                _baseTokenQty,
-                impliedBaseTokenQty,
-                _quoteTokenReserveQty, // use the actual balance here since we adjusted the base token to match ratio!
-                _liquidityFeeInBasisPoints
-            );
-        } else {
-            // we have the same or more reserves, no need to alter the curve.
-            quoteTokenQty = calculateQtyToReturnAfterFees(
-                _baseTokenQty,
-                _internalBalances.baseTokenReserveQty,
-                _internalBalances.quoteTokenReserveQty,
-                _liquidityFeeInBasisPoints
-            );
-        }
-
-        require(
-            quoteTokenQty > _quoteTokenQtyMin,
-            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
-        );
-
-        _internalBalances.quoteTokenReserveQty -= quoteTokenQty;
-        _internalBalances.baseTokenReserveQty += _baseTokenQty;
+        _internalBalances.quoteTokenReserveQty += quoteTokenQty;
     }
 
     /**
      * @dev calculates the qty of base tokens a user will receive for swapping their quote tokens (less fees)
-     * @param _quoteTokenQty the amount of quotes tokens the user wants to swap
+     * @param _quoteTokenQty the amount of quote tokens the user wants to swap
      * @param _baseTokenQtyMin the minimum about of base tokens they are willing to receive in return (slippage)
+     * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
      * @param _liquidityFeeInBasisPoints the current total liquidity fee represented as an integer of basis points
      * @param _internalBalances internal balances struct from our exchange's internal accounting
      *
@@ -661,28 +599,87 @@ library MathLib {
     function calculateBaseTokenQty(
         uint256 _quoteTokenQty,
         uint256 _baseTokenQtyMin,
+        uint256 _baseTokenReserveQty,
         uint256 _liquidityFeeInBasisPoints,
         InternalBalances storage _internalBalances
     ) public returns (uint256 baseTokenQty) {
         require(
-            _quoteTokenQty > 0 && _baseTokenQtyMin > 0,
-            "MathLib: INSUFFICIENT_TOKEN_QTY"
+            _baseTokenReserveQty > 0 &&
+                _internalBalances.baseTokenReserveQty > 0,
+            "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
-        baseTokenQty = calculateQtyToReturnAfterFees(
-            _quoteTokenQty,
-            _internalBalances.quoteTokenReserveQty,
-            _internalBalances.baseTokenReserveQty,
-            _liquidityFeeInBasisPoints
-        );
+        // check to see if we have experience quote token decay / a rebase down event
+        if (_baseTokenReserveQty < _internalBalances.baseTokenReserveQty) {
+            // we have less reserves than our current price curve will expect, we need to adjust the curve
+            uint256 wPricingRatio =
+                wDiv(
+                    _internalBalances.baseTokenReserveQty,
+                    _internalBalances.quoteTokenReserveQty
+                ); // omega
+
+            uint256 impliedQuoteTokenQty =
+                wDiv(_baseTokenReserveQty, wPricingRatio); // no need to divide by WAD, wPricingRatio is already a WAD.
+
+            baseTokenQty = calculateQtyToReturnAfterFees(
+                _quoteTokenQty,
+                impliedQuoteTokenQty,
+                _baseTokenReserveQty, // use the actual balance here since we adjusted the quote token to match ratio!
+                _liquidityFeeInBasisPoints
+            );
+        } else {
+            // we have the same or more reserves, no need to alter the curve.
+            baseTokenQty = calculateQtyToReturnAfterFees(
+                _quoteTokenQty,
+                _internalBalances.quoteTokenReserveQty,
+                _internalBalances.baseTokenReserveQty,
+                _liquidityFeeInBasisPoints
+            );
+        }
 
         require(
             baseTokenQty > _baseTokenQtyMin,
             "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
-        _internalBalances.quoteTokenReserveQty += _quoteTokenQty;
         _internalBalances.baseTokenReserveQty -= baseTokenQty;
+        _internalBalances.quoteTokenReserveQty += _quoteTokenQty;
+    }
+
+    /**
+     * @dev calculates the qty of quote tokens a user will receive for swapping their base tokens (less fees)
+     * @param _baseTokenQty the amount of bases tokens the user wants to swap
+     * @param _quoteTokenQtyMin the minimum about of quote tokens they are willing to receive in return (slippage)
+     * @param _liquidityFeeInBasisPoints the current total liquidity fee represented as an integer of basis points
+     * @param _internalBalances internal balances struct from our exchange's internal accounting
+     *
+     * @return quoteTokenQty qty of quote token the user will receive back
+     */
+    function calculateQuoteTokenQty(
+        uint256 _baseTokenQty,
+        uint256 _quoteTokenQtyMin,
+        uint256 _liquidityFeeInBasisPoints,
+        InternalBalances storage _internalBalances
+    ) public returns (uint256 quoteTokenQty) {
+        require(
+            _baseTokenQty > 0 && _quoteTokenQtyMin > 0,
+            "MathLib: INSUFFICIENT_TOKEN_QTY"
+        );
+
+        quoteTokenQty = calculateQtyToReturnAfterFees(
+            _baseTokenQty,
+            _internalBalances.baseTokenReserveQty,
+            _internalBalances.quoteTokenReserveQty,
+            _liquidityFeeInBasisPoints
+        );
+
+        require(
+            quoteTokenQty > _quoteTokenQtyMin,
+            "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
+        );
+
+        _internalBalances.baseTokenReserveQty += _baseTokenQty;
+        _internalBalances.quoteTokenReserveQty -= quoteTokenQty;
     }
 
     /**
@@ -699,8 +696,8 @@ library MathLib {
     ) public pure returns (uint256 liquidityTokenFeeQty) {
         uint256 rootK =
             sqrt(
-                _internalBalances.quoteTokenReserveQty *
-                    _internalBalances.baseTokenReserveQty
+                _internalBalances.baseTokenReserveQty *
+                    _internalBalances.quoteTokenReserveQty
             );
         uint256 rootKLast = sqrt(_internalBalances.kLast);
         if (rootK > rootKLast) {
