@@ -41,7 +41,8 @@
     "hardhat": "^2.3.0",
     "mocha": "^8.4.0",
     "prettier": "^2.3.0",
-    "prettier-plugin-solidity": "1.0.0-beta.3"
+    "prettier-plugin-solidity": "1.0.0-beta.3",
+    "solidity-coverage": "^0.7.17"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
