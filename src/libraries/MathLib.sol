@@ -553,14 +553,14 @@ library MathLib {
             quoteTokenQty = requiredQuoteTokenQty;
         } else {
             // we need to check the opposite way.
-            uint256 requiredbaseTokenQty =
+            uint256 requiredBaseTokenQty =
                 calculateQty(
                     _quoteTokenQtyDesired,
                     _internalBalances.quoteTokenReserveQty,
                     _internalBalances.baseTokenReserveQty
                 );
-            // assert(requiredbaseTokenQty <= _baseTokenQtyDesired);
-            if (requiredbaseTokenQty > _baseTokenQtyDesired) {
+            // assert(requiredBaseTokenQty <= _baseTokenQtyDesired);
+            if (requiredBaseTokenQty > _baseTokenQtyDesired) {
                 if (_throwOnBadRatio) {
                     assert(false); //should this really be an assert vs require?
                 } else {
@@ -569,10 +569,10 @@ library MathLib {
             }
 
             require(
-                requiredbaseTokenQty >= _baseTokenQtyMin,
+                requiredBaseTokenQty >= _baseTokenQtyMin,
                 "MathLib: INSUFFICIENT_BASE_QTY"
             );
-            baseTokenQty = requiredbaseTokenQty;
+            baseTokenQty = requiredBaseTokenQty;
             quoteTokenQty = _quoteTokenQtyDesired;
         }
 
