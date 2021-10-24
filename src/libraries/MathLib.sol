@@ -89,6 +89,7 @@ library MathLib {
                 x = (y / x + x) / 2;
             }
         } else if (y != 0) {
+          console.log("HIT");
             z = 1;
         }
     }
@@ -446,8 +447,7 @@ library MathLib {
                         _quoteTokenReserveQty + quoteTokenQtyFromDecay,
                         _totalSupplyOfLiquidityTokens +
                             liquidityTokenQtyFromDecay,
-                        _internalBalances, // NOTE: these balances have already been updated when we did the decay math.
-                        false
+                        _internalBalances // NOTE: these balances have already been updated when we did the decay math.
                     );
                 }
                 tokenQtys.baseTokenQty += baseTokenQtyFromDecay;
@@ -476,8 +476,7 @@ library MathLib {
                     _quoteTokenQtyMin,
                     _quoteTokenReserveQty,
                     _totalSupplyOfLiquidityTokens,
-                    _internalBalances,
-                    true
+                    _internalBalances
                 );
             }
         } else {
@@ -512,8 +511,6 @@ library MathLib {
      * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
-     * @param _throwOnBadRatio should the function assert if the ratio of _baseTokenQtyDesired/_quoteTokenQtyDesired
-     * cannot be honored. Otherwise will return 0s for all balances
      *
      * @return baseTokenQty qty of base token the user must supply
      * @return quoteTokenQty qty of quote token the user must supply
@@ -526,8 +523,7 @@ library MathLib {
         uint256 _quoteTokenQtyMin,
         uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
-        InternalBalances storage _internalBalances,
-        bool _throwOnBadRatio
+        InternalBalances storage _internalBalances
     )
         public
         returns (
@@ -559,14 +555,6 @@ library MathLib {
                     _internalBalances.quoteTokenReserveQty,
                     _internalBalances.baseTokenReserveQty
                 );
-            // assert(requiredBaseTokenQty <= _baseTokenQtyDesired);
-            if (requiredBaseTokenQty > _baseTokenQtyDesired) {
-                if (_throwOnBadRatio) {
-                    assert(false); //should this really be an assert vs require?
-                } else {
-                    return (0, 0, 0);
-                }
-            }
 
             require(
                 requiredBaseTokenQty >= _baseTokenQtyMin,
