@@ -89,7 +89,6 @@ library MathLib {
                 x = (y / x + x) / 2;
             }
         } else if (y != 0) {
-          console.log("HIT");
             z = 1;
         }
     }
