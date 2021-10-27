@@ -1,6 +1,6 @@
 {
   "name": "@elastic-dao/elasticswap",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "The first AMM with native support for tokens with elastic supply",
   "main": "index.js",
   "private": false,
