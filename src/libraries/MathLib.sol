@@ -225,7 +225,7 @@ library MathLib {
      * @return quoteTokenQty qty of quote token the user must supply
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
-    function calculateAddquoteTokenLiquidityQuantities(
+    function calculateAddQuoteTokenLiquidityQuantities(
         uint256 _quoteTokenQtyDesired,
         uint256 _quoteTokenQtyMin,
         uint256 _baseTokenReserveQty,
@@ -295,7 +295,7 @@ library MathLib {
      * @return baseTokenQty qty of base token the user must supply
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
-    function calculateAddbaseTokenLiquidityQuantities(
+    function calculateAddBaseTokenLiquidityQuantities(
         uint256 _baseTokenQtyDesired,
         uint256 _baseTokenQtyMin,
         uint256 _baseTokenReserveQty,
@@ -363,6 +363,19 @@ library MathLib {
         return (baseTokenQty, liquidityTokenQty);
     }
 
+    /**
+     * @dev used to calculate the qty of tokens a user will need to contribute and be issued in order to add liquidity
+     * @param _baseTokenQtyDesired the amount of base token the user wants to contribute
+     * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
+     * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
+     * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
+     * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
+     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
+     * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
+     * @param _internalBalances internal balances struct from our exchange's internal accounting
+     *
+     * @return tokenQtys qty of tokens needed to complete transaction 
+     */
     function calculateAddLiquidityQuantities(
         uint256 _baseTokenQtyDesired,
         uint256 _quoteTokenQtyDesired,
@@ -407,7 +420,7 @@ library MathLib {
                     (
                         quoteTokenQtyFromDecay,
                         liquidityTokenQtyFromDecay
-                    ) = calculateAddquoteTokenLiquidityQuantities(
+                    ) = calculateAddQuoteTokenLiquidityQuantities(
                         _quoteTokenQtyDesired,
                         0, // there is no minimum for this particular call since we may use quote tokens later.
                         _baseTokenReserveQty,
@@ -420,7 +433,7 @@ library MathLib {
                     (
                         baseTokenQtyFromDecay,
                         liquidityTokenQtyFromDecay
-                    ) = calculateAddbaseTokenLiquidityQuantities(
+                    ) = calculateAddBaseTokenLiquidityQuantities(
                         _baseTokenQtyDesired,
                         0, // there is no minimum for this particular call since we may use base tokens later.
                         _baseTokenReserveQty,
@@ -446,8 +459,7 @@ library MathLib {
                         _quoteTokenReserveQty + quoteTokenQtyFromDecay,
                         _totalSupplyOfLiquidityTokens +
                             liquidityTokenQtyFromDecay,
-                        _internalBalances, // NOTE: these balances have already been updated when we did the decay math.
-                        false
+                        _internalBalances // NOTE: these balances have already been updated when we did the decay math.
                     );
                 }
                 tokenQtys.baseTokenQty += baseTokenQtyFromDecay;
@@ -476,8 +488,7 @@ library MathLib {
                     _quoteTokenQtyMin,
                     _quoteTokenReserveQty,
                     _totalSupplyOfLiquidityTokens,
-                    _internalBalances,
-                    true
+                    _internalBalances
                 );
             }
         } else {
@@ -512,8 +523,6 @@ library MathLib {
      * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
-     * @param _throwOnBadRatio should the function assert if the ratio of _baseTokenQtyDesired/_quoteTokenQtyDesired
-     * cannot be honored. Otherwise will return 0s for all balances
      *
      * @return baseTokenQty qty of base token the user must supply
      * @return quoteTokenQty qty of quote token the user must supply
@@ -526,8 +535,7 @@ library MathLib {
         uint256 _quoteTokenQtyMin,
         uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
-        InternalBalances storage _internalBalances,
-        bool _throwOnBadRatio
+        InternalBalances storage _internalBalances
     )
         public
         returns (
@@ -553,26 +561,18 @@ library MathLib {
             quoteTokenQty = requiredQuoteTokenQty;
         } else {
             // we need to check the opposite way.
-            uint256 requiredbaseTokenQty =
+            uint256 requiredBaseTokenQty =
                 calculateQty(
                     _quoteTokenQtyDesired,
                     _internalBalances.quoteTokenReserveQty,
                     _internalBalances.baseTokenReserveQty
                 );
-            // assert(requiredbaseTokenQty <= _baseTokenQtyDesired);
-            if (requiredbaseTokenQty > _baseTokenQtyDesired) {
-                if (_throwOnBadRatio) {
-                    assert(false); //should this really be an assert vs require?
-                } else {
-                    return (0, 0, 0);
-                }
-            }
 
             require(
-                requiredbaseTokenQty >= _baseTokenQtyMin,
+                requiredBaseTokenQty >= _baseTokenQtyMin,
                 "MathLib: INSUFFICIENT_BASE_QTY"
             );
-            baseTokenQty = requiredbaseTokenQty;
+            baseTokenQty = requiredBaseTokenQty;
             quoteTokenQty = _quoteTokenQtyDesired;
         }
 
