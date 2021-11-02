@@ -165,6 +165,14 @@ The function that handles this is `removeLiquidity` in [Exchange.sol](https://gi
 
 > Note: It is possible to redeem `Ro` when there is decay (alpha or beta) present in the system.
 
+## Fees:
+
+As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees. This is the case with ElasticSwap as well, currently v1 of ElasticSwap only supports fees on Swap occurences (conversion of `quoteToken` for `baseToken` and vice-versa ).
+
+> Note: Fee on transfer's is **not** supported in v1
+
+There is a 30 Basis points(BP) fee for swap occurences(this is at par with other AMM's at the moment, this can be changed via vote if the ElasticSwap DAO votes to do so ), 5 BP of which goes the `feeAddress` (an address which is ElasticDAO initially, this can be changed via vote if the ElasticSwap DAO votes to do so). The remaining 25 BP is realised by the LP holders pro-rata.
+
 ## A complete example
 
 This example is to illustrate all the concepts in one series of hypothetical (but plausible) chain of events
@@ -198,6 +206,7 @@ Swapper #1 receives deltaX quoteTokens, where:
   alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
   betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
   K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
+  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro) = (10000*0.003*1000000)/(6 * 1000000)
 
 Therefore, post 1st swap, the state of the AMM is:
   X = 990128.419656029387
@@ -210,6 +219,9 @@ Therefore, post 1st swap, the state of the AMM is:
   BetaDecay = 1010000 - 1010000 =  0
   K = X*Y = 990128.419656029387 * 1010000 = 1000029703852.58968
   Ro = 1000000
+  feeAddress(ElasticDAO) recieves: 5 Ro
+   hence total Ro the feeAddress has 5 Ro
+
   (Note: Omega is equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
 Now let's assume a positive rebase occurs such that there are now 25% more `quoteTokens`, as a result of which:
@@ -238,6 +250,7 @@ Swapper #2 receives deltaX quoteTokens, where:
   beta' = 1010000 + 10000 = 1020000
   betaDecay' = 1020000 - 1020000 = 0
   K' = X' * Y' = 980450.115054942479 * 1020000 = 1000059117356.04133
+  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro): (10000 * 0.003 * 1000000)/(6 * 1010000)
 
 Therefore, post 2nd swap, the state of the AMM is:
   X = 980450.115054942479
@@ -250,6 +263,8 @@ Therefore, post 2nd swap, the state of the AMM is:
   AlphaDecay = 247532.104914007341
   BetaDecay = 0
   Ro = 1000000
+  feeAddress(ElasticDAO) recieves: 4.9504950495049505 Ro,
+    hence total Ro the feeAddress has 4.9504950495049505 + 5 = 9.9504950495049505 Ro
   (Note: The swap was unaffected by the occurrence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
 Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of baseTokens required to be supplied to the AMM are deltaY, where:
