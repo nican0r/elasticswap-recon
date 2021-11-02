@@ -39,9 +39,28 @@ Whenever there is a rebase event that occurs, which results in the increase or d
 ## Issuance of liquidity Tokens `ΔRo`
 
 Liquidity Tokens, `Ro`, are provided to liquidity providers.
-There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
+There are multiple ways to provide liquidity: creating an Elastic AMM pool, `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
 
-1. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
+1. **Creation of an Elastic AMM pool**:
+   This case refers to the creation of an ELastic AMM pool( a pool which consists of both `quoteToken` and `baseToken`) on ElasticSwap, this differs from `doubleAssetEntry` because here there is no `Omega`, `Sigma`, until the pool has been created. The first batch of LP tokens `Ro` are also minted to the liquidity provider who bootstraps the pool.
+
+   The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
+
+   ```
+     ΔRo = sqrt(ΔY * ΔX)
+     where,
+     # sqrt - Stands for the square root of the numbers provided, ex: sqrt(4) = 2
+     # ΔY - The amount of baseTokens the liquidity provider wants to provide.
+     # ΔX - The amount of quoteTokens the liquidity provider wants to provide.
+
+     Note: Initially, Ro = 0, hence after creation of the pool,
+            Ro' = ΔRo + Ro =>  Ro' = ΔRo + 0
+            (this becomes the Ro for other liquidity events, the dash and delta notation (Ro', ΔX, ΔY) is further explained in the Double Aset entry section)
+
+
+   ```
+
+2. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -83,7 +102,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 
    The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
 
-2. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
+3. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
    When there is `alphaDecay`:
@@ -111,7 +130,7 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 
    The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
 
-3. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
+4. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -162,8 +181,8 @@ This example is to illustrate all the concepts in one series of hypothetical (bu
     Sigma = 1000000/1000000 = 1
     AlphaDecay = 1000000 - 1000000 = 0
     BetaDecay = 1000000 - 1000000 = 0
-    deltaRo = -1000000  (Negative sign indicates that it is going out of the system)
-    Ro = 1000000 ( because deltaY/Y = 1 )
+    deltaRo = -1000000  (because sqrt(1000000*1000000) = 1000000, Negative sign indicates that it is going out of the system)
+    Ro = 1000000
   Liquidity provider #1 has now received 1000000 Ro.
 ----------------------------------------------------------------------------------------------------------------
 Now a participant(Swapper #1)comes along and wants to swap 10000 base tokens for quoteTokens.
