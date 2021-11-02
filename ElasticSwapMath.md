@@ -100,7 +100,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    Note: Y', X', Ro' become Y, X, Ro respectively for the next following liquidity event(regardless of it being single or double asset entry).
    ```
 
-   The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+   The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87)
 
 3. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
 
@@ -128,7 +128,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
 
    ```
 
-   The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+   The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87)
 
 4. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
 
@@ -161,7 +161,7 @@ where,
 
 ```
 
-The function that handles this is `removeLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol).
+The function that handles this is `removeLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87).
 
 > Note: It is possible to redeem `Ro` when there is decay (alpha or beta) present in the system.
 
@@ -169,9 +169,11 @@ The function that handles this is `removeLiquidity` in [Exchange.sol](https://gi
 
 As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees. This is the case with ElasticSwap as well, currently v1 of ElasticSwap only supports fees on Swap occurences (conversion of `quoteToken` for `baseToken` and vice-versa ).
 
-> Note: Fee on transfer's is **not** supported in v1
+> Note: Fee on transfer is **not** supported in v1
 
 There is a 30 Basis points(BP) fee for swap occurences(this is at par with other AMM's at the moment, this can be changed via vote if the ElasticSwap DAO votes to do so ), 5 BP of which goes the `feeAddress` (an address which is ElasticDAO initially, this can be changed via vote if the ElasticSwap DAO votes to do so). The remaining 25 BP is realised by the LP holders pro-rata.
+
+The fees are accrued on swap occurences, the portion of the fees (5 BP) that the `feeAddress` receives is sent to it when liquidity events occur.
 
 ## A complete example
 
