@@ -167,13 +167,17 @@ The function that handles this is `removeLiquidity` in [Exchange.sol](https://gi
 
 ## Fees:
 
-As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees. This is the case with ElasticSwap as well, currently v1 of ElasticSwap only supports fees on Swap occurences (conversion of `quoteToken` for `baseToken` and vice-versa ).
-
-> Note: Fee on transfer is **not** supported in v1
+As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees.
 
 There is a 30 Basis points(BP) fee for swap occurences(this is at par with other AMM's at the moment, this can be changed via vote if the ElasticSwap DAO votes to do so ), 5 BP of which goes the `feeAddress` (an address which is ElasticDAO initially, this can be changed via vote if the ElasticSwap DAO votes to do so). The remaining 25 BP is realised by the LP holders pro-rata.
 
 The fees are accrued on swap occurences, the portion of the fees (5 BP) that the `feeAddress` receives is sent to it when liquidity events occur.
+
+## Tokens supported by ElasticSwap:
+
+For the rebasing token - `QuoteToken`, any ERC20 token which is Elastic in nature, i.e it's supply contracts and expands due to external factors can be used to create a pool with a standard ERC20 non elastic token - `BaseToken`.
+
+> Note: Support for tokens that have Fee on transfer functionality will **not** supported in v1.
 
 ## A complete example
 
