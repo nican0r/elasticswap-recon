@@ -18,7 +18,7 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
         public exchangeAddressByTokenAddress;
     mapping(address => bool) public isValidExchangeAddress;
 
-    address private feeAddress_;
+    address public feeAddress;
 
     // events
     event NewExchange(address indexed creator, address indexed exchangeAddress);
@@ -26,7 +26,7 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
 
     constructor(address _feeAddress) {
         require(_feeAddress != address(0), "ExchangeFactory: INVALID_ADDRESS");
-        feeAddress_ = _feeAddress;
+        feeAddress = _feeAddress;
     }
 
     /**
@@ -72,11 +72,11 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
 
     function setFeeAddress(address _feeAddress) external onlyOwner {
         require(
-            _feeAddress != address(0) && _feeAddress != feeAddress_,
+            _feeAddress != address(0) && _feeAddress != feeAddress,
             "ExchangeFactory: INVAlID_FEE_ADDRESS"
         );
-        feeAddress_ = _feeAddress;
-        emit SetFeeAddress(feeAddress_);
+        feeAddress = _feeAddress;
+        emit SetFeeAddress(_feeAddress);
     }
 
     function feeAddress() public view virtual override returns (address) {
