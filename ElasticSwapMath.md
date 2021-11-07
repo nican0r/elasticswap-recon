@@ -39,9 +39,28 @@ Whenever there is a rebase event that occurs, which results in the increase or d
 ## Issuance of liquidity Tokens `ΔRo`
 
 Liquidity Tokens, `Ro`, are provided to liquidity providers.
-There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
+There are multiple ways to provide liquidity: creating an Elastic AMM pool, `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
 
-1. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
+1. **Creation of an Elastic AMM pool**:
+   This case refers to the creation of an ELastic AMM pool( a pool which consists of both `quoteToken` and `baseToken`) on ElasticSwap, this differs from `doubleAssetEntry` because here there is no `Omega`, `Sigma`, until the pool has been created. The first batch of LP tokens `Ro` are also minted to the liquidity provider who bootstraps the pool.
+
+   The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
+
+   ```
+     ΔRo = sqrt(ΔY * ΔX)
+     where,
+     # sqrt - Stands for the square root of the numbers provided, ex: sqrt(4) = 2
+     # ΔY - The amount of baseTokens the liquidity provider wants to provide.
+     # ΔX - The amount of quoteTokens the liquidity provider wants to provide.
+
+     Note: Initially, Ro = 0, hence after creation of the pool,
+            Ro' = ΔRo + Ro =>  Ro' = ΔRo + 0
+            (this becomes the Ro for other liquidity events, the dash and delta notation (Ro', ΔX, ΔY) is further explained in the Double Aset entry section)
+
+
+   ```
+
+2. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -81,9 +100,9 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
    Note: Y', X', Ro' become Y, X, Ro respectively for the next following liquidity event(regardless of it being single or double asset entry).
    ```
 
-   The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+   The function that does this is `addLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87)
 
-2. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
+3. **Single Asset Entry**: Single asset entry is only possible when there exists decay (alpha or beta) in the system. When there is decay in the system it means that Omega != Sigma. With Single Asset Entry, the liquidity provider is "correcting" this with their liquidity, i.e bringing Sigma in line with Omega.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
    When there is `alphaDecay`:
@@ -109,9 +128,9 @@ There are multiple ways to provide liquidity: `singleAssetEntry`, `doubleAssetEn
 
    ```
 
-   The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol)
+   The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87)
 
-3. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
+4. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -142,9 +161,23 @@ where,
 
 ```
 
-The function that handles this is `removeLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol).
+The function that handles this is `removeLiquidity` in [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87).
 
 > Note: It is possible to redeem `Ro` when there is decay (alpha or beta) present in the system.
+
+## Fees:
+
+As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees.
+
+There is a 30 Basis points(BP) fee for swap occurences(this is at par with other AMM's at the moment, this can be changed via vote if the ElasticSwap DAO votes to do so ), 5 BP of which goes the `feeAddress` (an address which is ElasticDAO initially, this can be changed via vote if the ElasticSwap DAO votes to do so). The remaining 25 BP is realised by the LP holders pro-rata.
+
+The fees are accrued on swap occurences, the portion of the fees (5 BP) that the `feeAddress` receives is sent to it when liquidity events occur.
+
+## Tokens supported by ElasticSwap:
+
+For the rebasing token - `QuoteToken`, any ERC20 token which is Elastic in nature, i.e it's supply contracts and expands due to external factors can be used to create a pool with a standard ERC20 non elastic token - `BaseToken`.
+
+> Note: Support for tokens that have Fee on transfer functionality will **not** supported in v1.
 
 ## A complete example
 
@@ -162,8 +195,8 @@ This example is to illustrate all the concepts in one series of hypothetical (bu
     Sigma = 1000000/1000000 = 1
     AlphaDecay = 1000000 - 1000000 = 0
     BetaDecay = 1000000 - 1000000 = 0
-    deltaRo = -1000000  (Negative sign indicates that it is going out of the system)
-    Ro = 1000000 ( because deltaY/Y = 1 )
+    deltaRo = -1000000  (because sqrt(1000000*1000000) = 1000000, Negative sign indicates that it is going out of the system)
+    Ro = 1000000
   Liquidity provider #1 has now received 1000000 Ro.
 ----------------------------------------------------------------------------------------------------------------
 Now a participant(Swapper #1)comes along and wants to swap 10000 base tokens for quoteTokens.
@@ -179,6 +212,7 @@ Swapper #1 receives deltaX quoteTokens, where:
   alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
   betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
   K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
+  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro) = (10000*0.003*1000000)/(6 * 1000000)
 
 Therefore, post 1st swap, the state of the AMM is:
   X = 990128.419656029387
@@ -191,6 +225,9 @@ Therefore, post 1st swap, the state of the AMM is:
   BetaDecay = 1010000 - 1010000 =  0
   K = X*Y = 990128.419656029387 * 1010000 = 1000029703852.58968
   Ro = 1000000
+  feeAddress(ElasticDAO) recieves: 5 Ro
+   hence total Ro the feeAddress has 5 Ro
+
   (Note: Omega is equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
 Now let's assume a positive rebase occurs such that there are now 25% more `quoteTokens`, as a result of which:
@@ -219,6 +256,7 @@ Swapper #2 receives deltaX quoteTokens, where:
   beta' = 1010000 + 10000 = 1020000
   betaDecay' = 1020000 - 1020000 = 0
   K' = X' * Y' = 980450.115054942479 * 1020000 = 1000059117356.04133
+  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro): (10000 * 0.003 * 1000000)/(6 * 1010000)
 
 Therefore, post 2nd swap, the state of the AMM is:
   X = 980450.115054942479
@@ -231,6 +269,8 @@ Therefore, post 2nd swap, the state of the AMM is:
   AlphaDecay = 247532.104914007341
   BetaDecay = 0
   Ro = 1000000
+  feeAddress(ElasticDAO) recieves: 4.9504950495049505 Ro,
+    hence total Ro the feeAddress has 4.9504950495049505 + 5 = 9.9504950495049505 Ro
   (Note: The swap was unaffected by the occurrence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
 Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of baseTokens required to be supplied to the AMM are deltaY, where:
