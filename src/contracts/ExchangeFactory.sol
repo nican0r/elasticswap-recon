@@ -76,7 +76,7 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
             "ExchangeFactory: INVAlID_FEE_ADDRESS"
         );
         feeAddress_ = _feeAddress;
-        emit SetFeeAddress(feeAddress_);
+        emit SetFeeAddress(_feeAddress);
     }
 
     function feeAddress() public view virtual override returns (address) {
