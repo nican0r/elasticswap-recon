@@ -4,23 +4,23 @@ This document is created to explain the technical-mathematical terms and concept
 
 ## Introduction
 
-Elastic Swap is the first Automated Market Maker (AMM) to natively support tokens with elastic supply. It is heavily influenced by UniSwap's implementation and diverges from their design in the fact that the `quoteToken` in each `Exchange` can be a token with elastic or fixed supply.
+Elastic Swap is the first Automated Market Maker (AMM) to natively support tokens with elastic supply. It is heavily influenced by UniSwap's implementation and diverges from their design in the fact that the `baseToken` in each `Exchange` can be a token with elastic or fixed supply.
 
 ## Technical Terms
 
 > Note: The usage of dash notation (`'`) & delta notation (`Δ`) is explained in subsequent examples in the following sections.
 
-- `X` - The internal balance of `quoteToken`, for accounting purposes.
+- `X` - The internal balance of `baseToken`, for accounting purposes.
 - `DeltaX (ΔX)` - The (incoming or outgoing) change in the quantity of `X`
 - `XDash (X')` -> `X' = ΔX + X` - The new quantity of `X` post the occurrence of a trade or a liquidity event
-- `Y` - The internal balance of `baseToken`, for accounting purposes.
+- `Y` - The internal balance of `quoteToken`, for accounting purposes.
 - `DeltaY (ΔY)` - The (incoming or outgoing) change in the quantity of `Y`
 - `YDash (Y')` -> `Y' = ΔY + Y` - The new quantity of `Y` post the occurence of a trade or a liquidity event
-- `Alpha (α)` - The ERC20 balance of `quoteToken` currently in the exchange.
-- `Beta (β)` - The ERC20 balance of `baseToken` currently in the exchange.
-- `Omega (ω)` - `X/Y` - The ratio of the internal balance of `quoteToken` to the internal balance of `baseToken`.
-- `K` - `X*Y` - The product of the internal balance of `quoteToken` and the internal balance of `baseToken`. It is used to price trades between `quoteToken` and `baseToken`.
-- `Sigma (σ)` - `α/β` - The ratio of the balance of `quoteToken` currently in the exchange to the balance of `baseToken` currently in the exchange.
+- `Alpha (α)` - The ERC20 balance of `baseToken` currently in the exchange.
+- `Beta (β)` - The ERC20 balance of `quoteToken` currently in the exchange.
+- `Omega (ω)` - `X/Y` - The ratio of the internal balance of `baseToken` to the internal balance of `quoteToken`.
+- `K` - `X*Y` - The product of the internal balance of `baseToken` and the internal balance of `quoteToken`. It is used to price trades between `baseToken` and `quoteToken`.
+- `Sigma (σ)` - `α/β` - The ratio of the balance of `baseToken` currently in the exchange to the balance of `quoteToken` currently in the exchange.
 - `AlphaDecay (α^)` - `α-X` - The amount of `Alpha(α)` not contributing to the liquidity due to an imbalance in the tokens caused by elastic supply (a rebase).
 - `BetaDecay (β^)` - `β-Y` - The amount of `Beta(β)` not contributing to the liquidity due to an imbalance in the tokens caused by elastic supply (a rebase).
 - `Ro (ρ)` - The total supply of the `liquidityToken`.
@@ -29,11 +29,11 @@ Elastic Swap is the first Automated Market Maker (AMM) to natively support token
 ## Further explained: Presence of `AlphaDecay(α^)` and `BetaDecay(β^)`
 
 The presence of the terms `X`, `Y`, `Alpha(α)`, `Beta(β)` allows the ElasticSwap v1 to support stable pricing on rebase events for an elastic-non elastic supply token pair. This is done with the concept of `AlphaDecay(α^)` and `BetaDecay(β^)`.
-Whenever there is a rebase event that occurs, which results in the increase or decrease in the supply of the `quoteToken`, decay is introduced. The presence (or absence) of which determines how much `Ro(ρ)` is issued to liquidity providers.
+Whenever there is a rebase event that occurs, which results in the increase or decrease in the supply of the `baseToken`, decay is introduced. The presence (or absence) of which determines how much `Ro(ρ)` is issued to liquidity providers.
 
-- When there is an increase in the supply of the `quoteToken`, essentially the quantity of `Alpha(α)` has increased, considering the situation where there was no decay prior to the rebase event, i.e initially `α = X` (and `β = Y`), implying `α^ = 0` (and `β^ = 0`). Post the rebase event: `α^ = α' - X` ( and `β^ = 0`, as there has been no change in `β` or `Y`)
+- When there is an increase in the supply of the `baseToken`, essentially the quantity of `Alpha(α)` has increased, considering the situation where there was no decay prior to the rebase event, i.e initially `α = X` (and `β = Y`), implying `α^ = 0` (and `β^ = 0`). Post the rebase event: `α^ = α' - X` ( and `β^ = 0`, as there has been no change in `β` or `Y`)
   > Note: In the above scenario, initially `ω = σ`, post the rebase event, `ω' != σ'`
-- When there is a contraction in the supply of the `quoteToken`, essentially the quantity of `Alpha(α)` has now decreased, considering the situation where there was no decay prior to the rebase event, i.e initially `α = X` (and `β = Y`), due to the contraction in supply, the `BetaDecay (β^)` is given by `β^ = (X - α') * iω`.
+- When there is a contraction in the supply of the `baseToken`, essentially the quantity of `Alpha(α)` has now decreased, considering the situation where there was no decay prior to the rebase event, i.e initially `α = X` (and `β = Y`), due to the contraction in supply, the `BetaDecay (β^)` is given by `β^ = (X - α') * iω`.
   > Note: In the above scenario, initially `ω = σ`, post the rebase event, `ω' != σ'`
 
 ## Issuance of liquidity Tokens `ΔRo`
@@ -42,7 +42,7 @@ Liquidity Tokens, `Ro`, are provided to liquidity providers.
 There are multiple ways to provide liquidity: creating an Elastic AMM pool, `singleAssetEntry`, `doubleAssetEntry` and a `partialSingleAndDoubleAssetEntry`.
 
 1. **Creation of an Elastic AMM pool**:
-   This case refers to the creation of an ELastic AMM pool( a pool which consists of both `quoteToken` and `baseToken`) on ElasticSwap, this differs from `doubleAssetEntry` because here there is no `Omega`, `Sigma`, until the pool has been created. The first batch of LP tokens `Ro` are also minted to the liquidity provider who bootstraps the pool.
+   This case refers to the creation of an ELastic AMM pool( a pool which consists of both `baseToken` and `quoteToken`) on ElasticSwap, this differs from `doubleAssetEntry` because here there is no `Omega`, `Sigma`, until the pool has been created. The first batch of LP tokens `Ro` are also minted to the liquidity provider who bootstraps the pool.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -50,8 +50,8 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
      ΔRo = sqrt(ΔY * ΔX)
      where,
      # sqrt - Stands for the square root of the numbers provided, ex: sqrt(4) = 2
-     # ΔY - The amount of baseTokens the liquidity provider wants to provide.
-     # ΔX - The amount of quoteTokens the liquidity provider wants to provide.
+     # ΔY - The amount of quoteTokens the liquidity provider wants to provide.
+     # ΔX - The amount of baseTokens the liquidity provider wants to provide.
 
      Note: Initially, Ro = 0, hence after creation of the pool,
             Ro' = ΔRo + Ro =>  Ro' = ΔRo + 0
@@ -60,7 +60,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
 
    ```
 
-2. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both quoteToken and baseToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
+2. **Double Asset Entry**: Double asset entry occurs when the liquidity provider provides both baseToken and quoteToken (in equivalent amounts, such that Omega stays constant) to the AMM. Double asset entry is only possible when there is **_NO_** `AlphaDecay (α^)` or `BetaDecay (β^)` present in the system. Double asset entry maintains the values of `Omega` and `Sigma`.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -68,8 +68,8 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    ΔRo = (ΔY/Y) * Ro
    where,
    # ΔRo - The amount of tokens the liquidity provider receives.
-   # ΔY - The amount of baseTokens the liquidity provider wants to provide.
-   # Y - The internal balance of baseToken.
+   # ΔY - The amount of quoteTokens the liquidity provider wants to provide.
+   # Y - The internal balance of quoteToken.
    # Ro - The current total supply of the liquidityToken
    ```
 
@@ -77,24 +77,24 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    > the above scenario initially(prior to Double Asset Entry) was:
 
    ```
-   Y - The internal balance of the baseToken,
+   Y - The internal balance of the quoteToken,
    Ro - The current total supply of the liquidityToken,
    ```
 
-   > The "change" that the system is introduced to the AMM by the liquidity provider, providing quoteToken and baseToken is given by:
+   > The "change" that the system is introduced to the AMM by the liquidity provider, providing baseToken and quoteToken is given by:
 
    ```
-   ΔY - The amount of baseTokens the liquidity provider wants to provide.
-   ΔX - The amount of quoteTokens the liquidity provider has to provide. Given by ΔX = K / ΔY
+   ΔY - The amount of quoteTokens the liquidity provider wants to provide.
+   ΔX - The amount of baseTokens the liquidity provider has to provide. Given by ΔX = K / ΔY
 
-   Note: The vice versa also holds true, If the liquidity provider wanted to provide a specific amount of quoteTokens(ΔX), then the amount of baseTokens(ΔY) to be provided would be given by ΔY = K / ΔX
+   Note: The vice versa also holds true, If the liquidity provider wanted to provide a specific amount of baseTokens(ΔX), then the amount of quoteTokens(ΔY) to be provided would be given by ΔY = K / ΔX
    ```
 
    > As a result of which a certain amount `ΔRo`(DeltaRo) is issued to the liquidity provider (refer above). Which results in the final state being:
 
    ```
-   Y' = Y + ΔY  - The (new) internal balance of baseToken after this liquidity event
-   X' = Y + ΔX  - The (new) internal balance of quoteToken after this liquidity event
+   Y' = Y + ΔY  - The (new) internal balance of quoteToken after this liquidity event
+   X' = Y + ΔX  - The (new) internal balance of baseToken after this liquidity event
    Ro' = Ro + ΔRo - The (new) current total of the liquidity tokens
 
    Note: Y', X', Ro' become Y, X, Ro respectively for the next following liquidity event(regardless of it being single or double asset entry).
@@ -112,7 +112,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    where,
    # ΔRo - The amount of tokens the liquidity provider receives.
    # γ = ΔY / Y / 2 * ( ΔX / α^ )
-   # ΔY = α^ / ω   - The amount of baseTokens required to completely offset alphaDecay.
+   # ΔY = α^ / ω   - The amount of quoteTokens required to completely offset alphaDecay.
 
    ```
 
@@ -123,14 +123,14 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    where,
    # ΔRo - The amount of tokens the liquidity provider receives.
    # γ = ΔX / X / 2 * ( ΔX / β^ )
-   # ΔX = α - X   - The amount of quoteTokens required to completely offset betaDecay(and be extension alphaDecay).
+   # ΔX = α - X   - The amount of baseTokens required to completely offset betaDecay(and by extension alphaDecay).
    # β^ = ΔX  / ω
 
    ```
 
    The respective solidity functions can be found at [Exchange.sol](https://github.com/elasticdao/elasticswap/blob/develop/src/contracts/Exchange.sol#L87)
 
-4. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `quoteToken` and `baseToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
+4. **PartialSingleAndDoubleAssetEntry**: When the liquidityProvider wants to provide both `baseToken` and `quoteToken` when decay is present, it is called a `PartialSingleAndDoubleAssetEntry`. This is because firstly a `singleAssetEntry` occurs, and then a `doubleAssetEntry` occurs. The liquidity provider receives `ΔRo`(liquidity tokens) that takes into account both the entires.
 
    The amount of `liquidityTokens` - (`ΔRo`) issued to the liquidity provider in this case is given by:
 
@@ -141,12 +141,12 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    # ΔRo(SAE) - The liquidity tokens received due to the DoubleAssetEntry
    ```
 
-   > Note: In `PartialSingleAndDoubleAssetEntry` it is possible that the user might end up with a certain amount of unused `quoteToken` or `baseToken`, This is because in the presence of `AlphaDecay (α^)` the `SingleAssetEntry` uses up a certain amount of `baseToken` and then the remaining amount of which is used along with an equivalent amount of `quoteToken` for the `DoubleAssetEntry`, the quantity of which could be lower than the amount the liquidity provider wanted to provide.
+   > Note: In `PartialSingleAndDoubleAssetEntry` it is possible that the user might end up with a certain amount of unused `baseToken` or `quoteToken`, This is because in the presence of `AlphaDecay (α^)` the `SingleAssetEntry` uses up a certain amount of `quoteToken` and then the remaining amount of which is used along with an equivalent amount of `baseToken` for the `DoubleAssetEntry`, the quantity of which could be lower than the amount the liquidity provider wanted to provide.
 
 ## Redemption of liquidity Tokens `ΔRo`
 
-The underlying redemption value of liquidity tokens increases due to the accrual of trading fees. At any time, they can be redeemed for equivalent amounts of `quoteToken` and `baseToken`.
-The amount of `quoteToken` and `baseToken` received is given by:
+The underlying redemption value of liquidity tokens increases due to the accrual of trading fees. At any time, they can be redeemed for equivalent amounts of `baseToken` and `quoteToken`.
+The amount of `baseToken` and `quoteToken` received is given by:
 
 ```
 ΔX = α * ΔRo / Ro
@@ -154,10 +154,10 @@ The amount of `quoteToken` and `baseToken` received is given by:
 
 where,
 # ΔRo - The amount of liquidity tokens the liquidity provider wants to exchange
-# ΔX - The amount of quoteToken the liquidity provider receives
-# ΔY - The amount of baseTokens the liquidity provider receives
-# α - The balance of quoteToken currently in the exchange
-# β - The balance of baseToken currently in the exchange
+# ΔX - The amount of baseToken the liquidity provider receives
+# ΔY - The amount of quoteTokens the liquidity provider receives
+# α - The balance of baseToken currently in the exchange
+# β - The balance of quoteToken currently in the exchange
 
 ```
 
@@ -175,16 +175,16 @@ The fees are accrued on swap occurences, the portion of the fees (5 BP) that the
 
 ## Tokens supported by ElasticSwap:
 
-For the rebasing token - `QuoteToken`, any ERC20 token which is Elastic in nature, i.e it's supply contracts and expands due to external factors can be used to create a pool with a standard ERC20 non elastic token - `BaseToken`.
+For the rebasing token - `baseToken`, any ERC20 token which is Elastic in nature, i.e it's supply contracts and expands due to external factors can be used to create a pool with a standard ERC20 non elastic token - `quoteToken`.
 
-> Note: Support for tokens that have Fee on transfer functionality will **not** supported in v1.
+> Note: Support for tokens that have Fee on transfer behaviour will **not** supported in V1.
 
 ## A complete example
 
 This example is to illustrate all the concepts in one series of hypothetical (but plausible) chain of events
 
 ```
-  Liquidity provider #1 provides 1000000 quoteTokens and 1000000 baseTokens.
+  Liquidity provider #1 provides 1000000 baseTokens and 1000000 quoteTokens.
   Therefore,
     X = 1000000
     Alpha = 1000000
@@ -199,13 +199,13 @@ This example is to illustrate all the concepts in one series of hypothetical (bu
     Ro = 1000000
   Liquidity provider #1 has now received 1000000 Ro.
 ----------------------------------------------------------------------------------------------------------------
-Now a participant(Swapper #1)comes along and wants to swap 10000 base tokens for quoteTokens.
-Swapper #1 receives deltaX quoteTokens, where:
+Now a participant(Swapper #1)comes along and wants to swap 10000 quote tokens for baseTokens.
+Swapper #1 receives deltaX baseTokens, where:
   deltaY = 10000
   X'  = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
   X' = 1000000000000 /(1000000 + 10000 -(10000*0.003)) = 990128.419656029387
-  deltaX = 990128.419656029387 - 1000000 = -9871.580343970613 (The negative sign simply indicates that the quoteTokens are going to the   swapper )
+  deltaX = 990128.419656029387 - 1000000 = -9871.580343970613 (The negative sign simply indicates that the baseTokens are going to the   swapper )
   Y' = Y + deltaY = 1000000 + 10000 = 1010000
   alpha' = alpha + deltaAlpha = 1000000 + (-9871.580343970613) = 990128.419656029387 ( Note: deltaX = deltaAlpha for swap events)
   beta' = beta + betaDecay = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
@@ -230,7 +230,7 @@ Therefore, post 1st swap, the state of the AMM is:
 
   (Note: Omega is equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
-Now let's assume a positive rebase occurs such that there are now 25% more `quoteTokens`, as a result of which:
+Now let's assume a positive rebase occurs such that there are now 25% more `baseTokens`, as a result of which:
   Alpha = 1.25 * 990128.419656029387 = 1237660.52457003673
   X = 990128.419656029387
   alphaDecay = alpha - X = 1237660.52457003673 - 990128.4196560293874 = 247532.104914007343
@@ -243,8 +243,8 @@ Now let's assume a positive rebase occurs such that there are now 25% more `quot
   Ro = 1000000
   (Note: Non zero alphaDecay and Omega is no longer equal to Sigma)
 ----------------------------------------------------------------------------------------------------------------
-Now a another participant (Swapper #2) comes along and wants to swap 10000 base tokens for quoteTokens.
-Swapper #2 receives deltaX quoteTokens, where:
+Now a another participant (Swapper #2) comes along and wants to swap 10000 quote tokens for baseTokens.
+Swapper #2 receives deltaX baseTokens, where:
   deltaY = 10000
   X' = K / (Y + deltaY - (deltaY*liquidityFee))
   (Assuming liquidity fee is 30 Basis points)
@@ -273,7 +273,7 @@ Therefore, post 2nd swap, the state of the AMM is:
     hence total Ro the feeAddress has 4.9504950495049505 + 5 = 9.9504950495049505 Ro
   (Note: The swap was unaffected by the occurrence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
-Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of baseTokens required to be supplied to the AMM are deltaY, where:
+Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is now possible due to presence of alphaDecay), in this case the amount of quoteTokens required to be supplied to the AMM are deltaY, where:
 
   deltaY = alphaDecay / Omega = 247532.104914007341 / 0.961225602995041647 = 257517.178217821776
 
@@ -317,14 +317,14 @@ Therefore at the end of the SingleAssetEntry the state of the AMM is:
   (Note: Omega = Sigma, which is expected behaviour)
 
 -------------------------------------------------------------------------------------------------------------------
-Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives a certain amount of quoteTokens and baseTokens, given by:
+Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives a certain amount of baseTokens and quoteTokens, given by:
 
   deltaX = alpha * deltaRo / Ro
   deltaY = beta * deltaRo / Ro
 
   Where,
-    deltaX - The amount of quoteTokens received
-    deltaY - The amount of baseTokens received
+    deltaX - The amount of baseTokens received
+    deltaY - The amount of quoteTokens received
     deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initially received
 
   Hence we get,
@@ -359,18 +359,18 @@ Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives
     betaDecay = 0
     Ro = 1000000
   And LP #2 has received,
-    quoteTokens = 155012.998131402192
-    baseTokens = 161265.989636984114
+    baseTokens = 155012.998131402192
+    quoteTokens = 161265.989636984114
 
 -------------------------------------------------------------------------------------------------------------------
-Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives a certain amount of quoteTokens and baseTokens, given by:
+Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives a certain amount of baseTokens and quoteTokens, given by:
 
   deltaX = alpha * deltaRo / Ro
   deltaY = beta * deltaRo / Ro
 
   Where,
-    deltaX - The amount of quoteTokens received
-    deltaY - The amount of baseTokens received
+    deltaX - The amount of baseTokens received
+    deltaY - The amount of quoteTokens received
     deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initially received
 
   Hence we get,
@@ -379,11 +379,11 @@ Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives
     deltaY = 1116251.18858083767 * (-1000000)/1000000 = -1116251.18858083767
     (Note: (-1) is because the  deltaRo is being redeemed for underlying quantities of deltaX and deltaY)
 
-  Hence LP#1 receives 1072969.22183754763 amount of quoteTokens and 1116251.18858083767 amount of baseTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
+  Hence LP#1 receives 1072969.22183754763 amount of baseTokens and 1116251.18858083767 amount of quoteTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
 
   LP#1 initial v final state:
-  quoteTokens -> final - initial = 1072969.22183754763 - 1000000 = 72969.22183754763
-  baseTokens -> final - initial = 1116251.18858083767 - 1000000 = 116251.18858083767
+  baseTokens -> final - initial = 1072969.22183754763 - 1000000 = 72969.22183754763
+  quoteTokens -> final - initial = 1116251.18858083767 - 1000000 = 116251.18858083767
 
 
 ```
