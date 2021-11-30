@@ -25,13 +25,13 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core", "deploy/test"],
+      deploy: ["deploy/core", "deploy/test", "deploy/testnet"],
     },
-    goerli: {
-      deploy: ["deploy/core", "deploy/test"],
-      url: `https://eth-goerli.alchemyapi.io/v2/${GOERLI_ALCHEMY_API_KEY}`,
-      accounts: [`0x${GOERLI_PRIVATE_KEY}`]
-    },
+    // goerli: {
+    //   deploy: ["deploy/core", "deploy/testnet"],
+    //   url: `https://eth-goerli.alchemyapi.io/v2/${GOERLI_ALCHEMY_API_KEY}`,
+    //   accounts: [`0x${GOERLI_PRIVATE_KEY}`]
+    // },
   },
   paths: {
     deploy: ["deploy/core"],

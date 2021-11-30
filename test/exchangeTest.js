@@ -4313,10 +4313,10 @@ describe("Exchange", () => {
 
       // check token balances after (should be reduced)
       expect(await baseToken.balanceOf(accounts[0].address)).to.equal(
-        initialSupply - amountToAdd
+        initialSupply.sub(amountToAdd)
       );
       expect(await quoteToken.balanceOf(accounts[0].address)).to.equal(
-        initialSupply - amountToAdd
+        initialSupply.sub(amountToAdd)
       );
       expect(await exchange.balanceOf(accounts[0].address)).to.equal(
         amountToAdd
@@ -4344,10 +4344,10 @@ describe("Exchange", () => {
 
       // confirm expected balances after redemption
       expect(await baseToken.balanceOf(accounts[0].address)).to.equal(
-        initialSupply - amountToRedeem
+        initialSupply.sub(amountToRedeem)
       );
       expect(await quoteToken.balanceOf(accounts[0].address)).to.equal(
-        initialSupply - amountToRedeem
+        initialSupply.sub(amountToRedeem)
       );
       expect(await exchange.balanceOf(accounts[0].address)).to.equal(
         amountToRedeem
