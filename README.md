@@ -11,5 +11,5 @@ The first automated market maker (AMM) with native support for tokens with elast
 
 # Deployments (on testnet)
 1. Update hardhat.config.json with needed credentials
-1. `npx hardhat deploy --network goerli --export-all deployments.json`
+1. `npx hardhat deploy --network goerli --export-all ./artifacts/deployments.json`
 1. Verify on etherscan `npx hardhat --network goerli etherscan-verify --api-key <APIKEY>`
