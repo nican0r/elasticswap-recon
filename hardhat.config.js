@@ -7,8 +7,8 @@ require("solidity-coverage");
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const GOERLI_PRIVATE_KEY = "YOUR_PRIVATE_KEY";
-const GOERLI_ALCHEMY_API_KEY = "YOUR_API_KEY"
+const GOERLI_PRIVATE_KEY = "c0c2220953379ccf3158a1a09510880520dbb6813d7b775ab8ca07ca6c2370c1";
+const GOERLI_ALCHEMY_API_KEY = "FCmycL7c0bxTh_COv_vb-9lZr5G7oSiE"
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
