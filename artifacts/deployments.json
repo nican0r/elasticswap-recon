@@ -5,7 +5,7 @@
       "chainId": "5",
       "contracts": {
         "BaseToken": {
-          "address": "0x122A45037ef1bC9C4B2Ae5A1f81733D9e272DC6E",
+          "address": "0xB49CC30368C3F3bE2BE2739EDB619a759EC78E52",
           "abi": [
             {
               "inputs": [
@@ -2000,7 +2000,7 @@
           ]
         },
         "QuoteToken": {
-          "address": "0x5641F9690dEe4238595230eBBEC0C9972a625b9C",
+          "address": "0xC01ef9ed2FE07aEBa59a1aBdE13419e91F6BF46e",
           "abi": [
             {
               "inputs": [
