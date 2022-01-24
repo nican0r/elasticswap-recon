@@ -208,7 +208,7 @@ Swapper #1 receives deltaX baseTokens, where:
   deltaX = 990128.419656029387 - 1000000 = -9871.580343970613 (The negative sign simply indicates that the baseTokens are going to the   swapper )
   Y' = Y + deltaY = 1000000 + 10000 = 1010000
   alpha' = alpha + deltaAlpha = 1000000 + (-9871.580343970613) = 990128.419656029387 ( Note: deltaX = deltaAlpha for swap events)
-  beta' = beta + betaDecay = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
+  beta' = beta + deltaBeta = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
   alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
   betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
   K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
