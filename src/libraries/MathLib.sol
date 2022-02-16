@@ -327,7 +327,7 @@ library MathLib {
         uint256 maxBaseTokenQty =
             _internalBalances.baseTokenReserveQty - _baseTokenReserveQty;
         require(
-            _baseTokenQtyMin < maxBaseTokenQty,
+            _baseTokenQtyMin <= maxBaseTokenQty,
             "MathLib: INSUFFICIENT_DECAY"
         );
 
@@ -651,7 +651,7 @@ library MathLib {
         }
 
         require(
-            baseTokenQty > _baseTokenQtyMin,
+            baseTokenQty >= _baseTokenQtyMin,
             "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
@@ -687,7 +687,7 @@ library MathLib {
         );
 
         require(
-            quoteTokenQty > _quoteTokenQtyMin,
+            quoteTokenQty >= _quoteTokenQtyMin,
             "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
         );
 
