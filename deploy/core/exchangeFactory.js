@@ -4,12 +4,15 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { admin, feeRecipient } = namedAccounts;
 
   const mathLib = await deployments.get("MathLib");
+  const safeMetaDataLib = await deployments.get("SafeMetadata");
+
   const deployResult = await deploy("ExchangeFactory", {
     from: admin,
     contract: "ExchangeFactory",
     args: [feeRecipient],
     libraries: {
       MathLib: mathLib.address,
+      SafeMetadata: safeMetaDataLib.address,
     },
   });
   if (deployResult.newlyDeployed) {
@@ -19,4 +22,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   }
 };
 module.exports.tags = ["ExchangeFactory"];
-module.exports.dependencies = ["MathLib"];
+module.exports.dependencies = ["MathLib", "SafeMetadata"];
