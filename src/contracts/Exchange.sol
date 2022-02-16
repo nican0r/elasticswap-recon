@@ -24,8 +24,7 @@ contract Exchange is ERC20, ReentrancyGuard {
 
     uint256 public constant TOTAL_LIQUIDITY_FEE = 30; // fee provided to liquidity providers + DAO in basis points
 
-    MathLib.InternalBalances public internalBalances =
-        MathLib.InternalBalances(0, 0, 0);
+    MathLib.InternalBalances public internalBalances;
 
     event AddLiquidity(
         address indexed liquidityProvider,
