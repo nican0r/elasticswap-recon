@@ -1,5 +1,8 @@
 const { expect } = require("chai");
 const { ethers, deployments } = require("hardhat");
+const { BigNumber } = require("bignumber.js");
+
+const { ROUND_DOWN } = BigNumber;
 
 const WAD = ethers.BigNumber.from(10).pow(18);
 
@@ -170,99 +173,120 @@ describe("MathLib", () => {
     });
   });
 
-  describe("calculateLiquidityTokenQtyForSingleAssetEntry", () => {
+  describe("calculateLiquidityTokenQtyForSingleAssetEntryWithBaseTokenDecay", () => {
     it("Should return the correct qty of liquidity tokens with a rebase down", async () => {
       // Scenario: We have 1000:5000 A:B or X:Y, a rebase down occurs (of 50 tokens)
       // and a user needs to 50 tokens in order to remove the decay
       const totalSupplyOfLiquidityTokens = 5000;
       const tokenAQtyToAdd = 50;
       const tokenAInternalReserveQtyAfterTransaction = 1000; // 950 + 50 brining us back to original state.
-      const tokenBDecayChange = 250;
-      const tokenBDecay = 250;
 
       const gamma =
-        (tokenAQtyToAdd / tokenAInternalReserveQtyAfterTransaction / 2) *
-        (tokenBDecayChange / tokenBDecay);
+        tokenAQtyToAdd /
+        (tokenAInternalReserveQtyAfterTransaction + 950 + tokenAQtyToAdd);
       const expectLiquidityTokens = Math.floor(
         (totalSupplyOfLiquidityTokens * gamma) / (1 - gamma)
       );
+
       expect(
-        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntry(
+        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntryWithQuoteTokenDecay(
+          950,
           totalSupplyOfLiquidityTokens,
           tokenAQtyToAdd,
-          tokenAInternalReserveQtyAfterTransaction,
-          tokenBDecayChange,
-          tokenBDecay
+          tokenAInternalReserveQtyAfterTransaction
         )
       ).to.equal(expectLiquidityTokens);
 
       // if we supply half, and remove half the decay, we should get roughly 1/2 the tokens
       const tokenAQtyToAdd2 = 25;
       const tokenAInternalReserveQtyAfterTransaction2 = 975; // 950 + 25 brining us back to original state.
-      const tokenBDecayChange2 = 125;
       const gamma2 =
-        (tokenAQtyToAdd2 / tokenAInternalReserveQtyAfterTransaction2 / 2) *
-        (tokenBDecayChange2 / tokenBDecay);
+        tokenAQtyToAdd2 /
+        (tokenAInternalReserveQtyAfterTransaction2 + 950 + tokenAQtyToAdd2);
+
       const expectLiquidityTokens2 = Math.floor(
         (totalSupplyOfLiquidityTokens * gamma2) / (1 - gamma2)
       );
 
       expect(
-        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntry(
+        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntryWithQuoteTokenDecay(
+          950,
           totalSupplyOfLiquidityTokens,
           tokenAQtyToAdd2,
-          tokenAInternalReserveQtyAfterTransaction2,
-          tokenBDecayChange2,
-          tokenBDecay
+          tokenAInternalReserveQtyAfterTransaction2
         )
       ).to.equal(expectLiquidityTokens2);
+
+      // since user has removed half of the decay
+      expect(expectLiquidityTokens / 2).to.equal(expectLiquidityTokens2);
     });
 
     it("Should return the correct qty of liquidity tokens with a rebase up", async () => {
       // Scenario: We have 1000:5000 A:B or X:Y, a rebase up occurs (of 500 tokens)
-      // and a user needs to add 2500 quote tokens to remove the base decay
+      // and a user needs to add 2500 quote tokens(deltaY: 2500 = 500 / (1000/5000)) to remove the base decay
       const totalSupplyOfLiquidityTokens = 5000;
       const tokenAQtyToAdd = 2500;
       const tokenAInternalReserveQtyAfterTransaction = 7500; // 5000 + 2500 to offset rebase up
-      const tokenBDecayChange = 500;
-      const tokenBDecay = 500;
 
-      const gamma =
-        (tokenAQtyToAdd / tokenAInternalReserveQtyAfterTransaction / 2) *
-        (tokenBDecayChange / tokenBDecay);
-      const expectLiquidityTokens = Math.floor(
+      // omega = X/Y
+      const omega = 1000 / 5000;
+
+      // ratio : alpha / omega
+      // 1500 - alpha (after rebase up of 500)
+      const ratio = 1500 / omega;
+
+      // denominator = ratio + internalTokenAReserveQty
+      // internalTokenAReserveQty: the internal balance (X or Y) of token A as a result of this transaction
+      const denominator = ratio + tokenAInternalReserveQtyAfterTransaction;
+
+      const gamma = tokenAQtyToAdd / denominator;
+
+      const expectLiquidityTokens = Math.ceil(
         (totalSupplyOfLiquidityTokens * gamma) / (1 - gamma)
       );
-      expect(
-        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntry(
+
+      const calculatedLiquidityTokenQtyForSingleAssetEntry =
+        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntryWithBaseTokenDecay(
+          1500,
           totalSupplyOfLiquidityTokens,
           tokenAQtyToAdd,
           tokenAInternalReserveQtyAfterTransaction,
-          tokenBDecayChange,
-          tokenBDecay
-        )
-      ).to.equal(expectLiquidityTokens);
+          await mathLib.wDiv(1000, 5000)
+        );
 
-      // if we supply half, and remove half the decay, we should get roughly 1/2 the tokens
-      const tokenAQtyToAdd2 = 2500;
-      const tokenAInternalReserveQtyAfterTransaction2 = 6250;
-      const tokenBDecayChange2 = 250;
-      const gamma2 =
-        (tokenAQtyToAdd2 / tokenAInternalReserveQtyAfterTransaction2 / 2) *
-        (tokenBDecayChange2 / tokenBDecay);
-      const expectLiquidityTokens2 = Math.floor(
-        (totalSupplyOfLiquidityTokens * gamma2) / (1 - gamma2)
+      expect(calculatedLiquidityTokenQtyForSingleAssetEntry).to.equal(
+        expectLiquidityTokens
       );
 
-      expect(
-        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntry(
+      // if we supply half, and remove half the decay, we should get roughly 1/2 the tokens
+      const tokenAQtyToAdd2 = 1250;
+      const tokenAInternalReserveQtyAfterTransaction2 = 6250;
+
+      // denominator = ratio + internalTokenAReserveQty
+      // internalTokenAReserveQty: the internal balance (X or Y) of token A as a result of this transaction
+      const denominator2 = ratio + tokenAInternalReserveQtyAfterTransaction2;
+
+      const gamma2BN = BigNumber(tokenAQtyToAdd2)
+        .dividedBy(BigNumber(denominator2))
+        .dp(18);
+
+      const expectLiquidityTokens2BN = BigNumber(totalSupplyOfLiquidityTokens)
+        .multipliedBy(gamma2BN)
+        .dividedBy(BigNumber(1).minus(gamma2BN))
+        .dp(0, ROUND_DOWN);
+
+      const calculatedLiquidityTokenQtyForSingleAssetEntry2 =
+        await mathLib.calculateLiquidityTokenQtyForSingleAssetEntryWithBaseTokenDecay(
+          1500,
           totalSupplyOfLiquidityTokens,
           tokenAQtyToAdd2,
           tokenAInternalReserveQtyAfterTransaction2,
-          tokenBDecayChange2,
-          tokenBDecay
-        )
-      ).to.equal(expectLiquidityTokens2);
+          await mathLib.wDiv(1000, 5000)
+        );
+
+      expect(
+        calculatedLiquidityTokenQtyForSingleAssetEntry2.toString()
+      ).to.equal(expectLiquidityTokens2BN.toString());
     });
   });
 

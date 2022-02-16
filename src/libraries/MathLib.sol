@@ -153,36 +153,70 @@ library MathLib {
 
     /**
      * @dev used to calculate the qty of liquidity tokens (deltaRo) we will be issued to a supplier
-     * of a single asset entry when decay is present.
+     * of a single asset entry when base token decay is present.
+     * @param _baseTokenReserveBalance the total balance (external) of base tokens in our pool (Alpha)
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _tokenQtyAToAdd the amount of tokens being added by the caller to remove the current decay
      * @param _internalTokenAReserveQty the internal balance (X or Y) of token A as a result of this transaction
-     * @param _tokenBDecayChange the change that will occur in the decay in the opposite token as a result of
-     * this transaction
-     * @param _tokenBDecay the amount of decay in tokenB
-     *
+     * @param _omega - ratio of internal balances of baseToken and quoteToken: baseToken/quoteToken
      * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
      */
-    function calculateLiquidityTokenQtyForSingleAssetEntry(
+    function calculateLiquidityTokenQtyForSingleAssetEntryWithBaseTokenDecay(
+        uint256 _baseTokenReserveBalance,
         uint256 _totalSupplyOfLiquidityTokens,
         uint256 _tokenQtyAToAdd,
         uint256 _internalTokenAReserveQty,
-        uint256 _tokenBDecayChange,
-        uint256 _tokenBDecay
+        uint256 _omega
     ) public pure returns (uint256 liquidityTokenQty) {
-        // gamma = deltaY / Y' / 2 * (deltaX / alphaDecay')
-        uint256 wGamma =
+        /**
+        
+        (is the formula in the terms of quoteToken)
+                    ΔY 
+            = ---------------------                                                    
+                Alpha/Omega + Y'
+
+
+         */
+        uint256 wRatio = wDiv(_baseTokenReserveBalance, _omega);
+        uint256 denominator = wRatio + _internalTokenAReserveQty;
+        uint256 wGamma = wDiv(_tokenQtyAToAdd, denominator);
+
+        liquidityTokenQty =
             wDiv(
-                (
-                    wMul(
-                        wDiv(_tokenQtyAToAdd, _internalTokenAReserveQty),
-                        _tokenBDecayChange * WAD
-                    )
-                ),
-                _tokenBDecay
+                wMul(_totalSupplyOfLiquidityTokens * WAD, wGamma),
+                WAD - wGamma
             ) /
-                WAD /
-                2;
+            WAD;
+    }
+
+    /**
+     * @dev used to calculate the qty of liquidity tokens (deltaRo) we will be issued to a supplier
+     * of a single asset entry when quote decay is present.
+     * @param _baseTokenReserveBalance the total balance (external) of base tokens in our pool (Alpha)
+     * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
+     * @param _tokenQtyAToAdd the amount of tokens being added by the caller to remove the current decay
+     * @param _internalTokenAReserveQty the internal balance (X or Y) of token A as a result of this transaction
+     * @return liquidityTokenQty qty of liquidity tokens to be issued in exchange
+     */
+    function calculateLiquidityTokenQtyForSingleAssetEntryWithQuoteTokenDecay(
+        uint256 _baseTokenReserveBalance,
+        uint256 _totalSupplyOfLiquidityTokens,
+        uint256 _tokenQtyAToAdd,
+        uint256 _internalTokenAReserveQty
+    ) public pure returns (uint256 liquidityTokenQty) {
+        /**
+        
+               ΔX
+        = -------------------  / (denominator may be Alpha' instead of X)
+           X + (Alpha + ΔX)
+
+        */
+
+        uint256 denominator =
+            _internalTokenAReserveQty +
+                _baseTokenReserveBalance +
+                _tokenQtyAToAdd;
+        uint256 wGamma = wDiv(_tokenQtyAToAdd, denominator);
 
         liquidityTokenQty =
             wDiv(
@@ -272,12 +306,12 @@ library MathLib {
         _internalBalances.quoteTokenReserveQty += quoteTokenQty;
 
         // calculate the number of liquidity tokens to return to user using
-        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntry(
+        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntryWithBaseTokenDecay(
+            _baseTokenReserveQty,
             _totalSupplyOfLiquidityTokens,
             quoteTokenQty,
             _internalBalances.quoteTokenReserveQty,
-            baseTokenQtyDecayChange,
-            baseTokenDecay
+            wInternalBaseTokenToQuoteTokenRatio
         );
         return (quoteTokenQty, liquidityTokenQty);
     }
@@ -352,14 +386,12 @@ library MathLib {
         // baseTokenReserveQty += baseTokenQty;
 
         // calculate the number of liquidity tokens to return to user using:
-        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntry(
+        liquidityTokenQty = calculateLiquidityTokenQtyForSingleAssetEntryWithQuoteTokenDecay(
+            _baseTokenReserveQty,
             _totalSupplyOfLiquidityTokens,
             baseTokenQty,
-            _internalBalances.baseTokenReserveQty,
-            quoteTokenQtyDecayChange,
-            quoteTokenDecay
+            _internalBalances.baseTokenReserveQty
         );
-        return (baseTokenQty, liquidityTokenQty);
     }
 
     /**
@@ -373,7 +405,7 @@ library MathLib {
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
      *
-     * @return tokenQtys qty of tokens needed to complete transaction 
+     * @return tokenQtys qty of tokens needed to complete transaction
      */
     function calculateAddLiquidityQuantities(
         uint256 _baseTokenQtyDesired,
