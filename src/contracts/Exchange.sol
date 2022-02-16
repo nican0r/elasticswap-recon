@@ -109,7 +109,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             internalBalances.baseTokenReserveQty *
             internalBalances.quoteTokenReserveQty;
 
-        if (tokenQtys.liquidityTokenFeeQty > 0) {
+        if (tokenQtys.liquidityTokenFeeQty != 0) {
             // mint liquidity tokens to fee address for k growth.
             _mint(
                 IExchangeFactory(exchangeFactoryAddress).feeAddress(),
@@ -172,9 +172,9 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _expirationTimestamp
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
-        require(this.totalSupply() > 0, "Exchange: INSUFFICIENT_LIQUIDITY");
+        require(this.totalSupply() != 0, "Exchange: INSUFFICIENT_LIQUIDITY");
         require(
-            _baseTokenQtyMin > 0 && _quoteTokenQtyMin > 0,
+            _baseTokenQtyMin != 0 && _quoteTokenQtyMin != 0,
             "Exchange: MINS_MUST_BE_GREATER_THAN_ZERO"
         );
 
@@ -231,7 +231,7 @@ contract Exchange is ERC20, ReentrancyGuard {
             internalBalances.baseTokenReserveQty *
             internalBalances.quoteTokenReserveQty;
 
-        if (liquidityTokenFeeQty > 0) {
+        if (liquidityTokenFeeQty != 0) {
             _mint(
                 IExchangeFactory(exchangeFactoryAddress).feeAddress(),
                 liquidityTokenFeeQty
@@ -263,7 +263,7 @@ contract Exchange is ERC20, ReentrancyGuard {
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         require(
-            _baseTokenQty > 0 && _minQuoteTokenQty > 0,
+            _baseTokenQty != 0 && _minQuoteTokenQty != 0,
             "Exchange: INSUFFICIENT_TOKEN_QTY"
         );
 
@@ -300,7 +300,7 @@ contract Exchange is ERC20, ReentrancyGuard {
     ) external nonReentrant() {
         isNotExpired(_expirationTimestamp);
         require(
-            _quoteTokenQty > 0 && _minBaseTokenQty > 0,
+            _quoteTokenQty != 0 && _minBaseTokenQty != 0,
             "Exchange: INSUFFICIENT_TOKEN_QTY"
         );
 
