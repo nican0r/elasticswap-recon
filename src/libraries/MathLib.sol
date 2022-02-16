@@ -245,7 +245,6 @@ library MathLib {
      * @dev used to calculate the qty of quote token required and liquidity tokens (deltaRo) to be issued
      * in order to add liquidity and remove base token decay.
      * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
-     * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
      * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
@@ -256,7 +255,6 @@ library MathLib {
      */
     function calculateAddQuoteTokenLiquidityQuantities(
         uint256 _quoteTokenQtyDesired,
-        uint256 _quoteTokenQtyMin,
         uint256 _baseTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
@@ -274,11 +272,6 @@ library MathLib {
         // alphaDecay / omega (A/B)
         uint256 maxQuoteTokenQty =
             wDiv(baseTokenDecay, wInternalBaseTokenToQuoteTokenRatio);
-
-        require(
-            _quoteTokenQtyMin < maxQuoteTokenQty,
-            "MathLib: INSUFFICIENT_DECAY"
-        );
 
         if (_quoteTokenQtyDesired > maxQuoteTokenQty) {
             quoteTokenQty = maxQuoteTokenQty;
@@ -449,7 +442,6 @@ library MathLib {
                         liquidityTokenQtyFromDecay
                     ) = calculateAddQuoteTokenLiquidityQuantities(
                         _quoteTokenQtyDesired,
-                        0, // there is no minimum for this particular call since we may use quote tokens later.
                         _baseTokenReserveQty,
                         _totalSupplyOfLiquidityTokens,
                         _internalBalances
