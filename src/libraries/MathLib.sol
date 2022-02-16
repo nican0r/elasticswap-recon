@@ -118,9 +118,9 @@ library MathLib {
         uint256 _tokenAReserveQty,
         uint256 _tokenBReserveQty
     ) public pure returns (uint256 tokenBQty) {
-        require(_tokenAQty > 0, "MathLib: INSUFFICIENT_QTY");
+        require(_tokenAQty != 0, "MathLib: INSUFFICIENT_QTY");
         require(
-            _tokenAReserveQty > 0 && _tokenBReserveQty > 0,
+            _tokenAReserveQty != 0 && _tokenBReserveQty != 0,
             "MathLib: INSUFFICIENT_LIQUIDITY"
         );
         tokenBQty = (_tokenAQty * _tokenBReserveQty) / _tokenAReserveQty;
@@ -286,7 +286,7 @@ library MathLib {
             ) / WAD;
 
         require(
-            baseTokenQtyDecayChange > 0,
+            baseTokenQtyDecayChange != 0,
             "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
         );
         //x += alphaDecayChange
@@ -327,7 +327,7 @@ library MathLib {
         uint256 maxBaseTokenQty =
             _internalBalances.baseTokenReserveQty - _baseTokenReserveQty;
         require(
-            _baseTokenQtyMin < maxBaseTokenQty,
+            _baseTokenQtyMin <= maxBaseTokenQty,
             "MathLib: INSUFFICIENT_DECAY"
         );
 
@@ -356,7 +356,7 @@ library MathLib {
             ) / WAD;
 
         require(
-            quoteTokenQtyDecayChange > 0,
+            quoteTokenQtyDecayChange != 0,
             "MathLib: INSUFFICIENT_CHANGE_IN_DECAY"
         );
 
@@ -367,7 +367,7 @@ library MathLib {
         // this may be redundant quoted on the above math, but will check to ensure the decay wasn't so small
         // that it was <1 and rounded down to 0 saving the caller some gas
         // also could fix a potential revert due to div by zero.
-        require(quoteTokenDecay > 0, "MathLib: NO_QUOTE_DECAY");
+        require(quoteTokenDecay != 0, "MathLib: NO_QUOTE_DECAY");
 
         // we are not changing anything about our internal accounting here. We are simply adding tokens
         // to make our internal account "right"...or rather getting the external balances to match our internal
@@ -404,7 +404,7 @@ library MathLib {
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
     ) public returns (TokenQtys memory tokenQtys) {
-        if (_totalSupplyOfLiquidityTokens > 0) {
+        if (_totalSupplyOfLiquidityTokens != 0) {
             // we have outstanding liquidity tokens present and an existing price curve
 
             tokenQtys.liquidityTokenFeeQty = calculateLiquidityTokenFees(
@@ -509,11 +509,11 @@ library MathLib {
         } else {
             // this user will set the initial pricing curve
             require(
-                _baseTokenQtyDesired > 0,
+                _baseTokenQtyDesired != 0,
                 "MathLib: INSUFFICIENT_BASE_QTY_DESIRED"
             );
             require(
-                _quoteTokenQtyDesired > 0,
+                _quoteTokenQtyDesired != 0,
                 "MathLib: INSUFFICIENT_QUOTE_QTY_DESIRED"
             );
 
@@ -617,8 +617,8 @@ library MathLib {
         InternalBalances storage _internalBalances
     ) public returns (uint256 baseTokenQty) {
         require(
-            _baseTokenReserveQty > 0 &&
-                _internalBalances.baseTokenReserveQty > 0,
+            _baseTokenReserveQty != 0 &&
+                _internalBalances.baseTokenReserveQty != 0,
             "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
@@ -651,7 +651,7 @@ library MathLib {
         }
 
         require(
-            baseTokenQty > _baseTokenQtyMin,
+            baseTokenQty >= _baseTokenQtyMin,
             "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
         );
 
@@ -675,7 +675,7 @@ library MathLib {
         InternalBalances storage _internalBalances
     ) public returns (uint256 quoteTokenQty) {
         require(
-            _baseTokenQty > 0 && _quoteTokenQtyMin > 0,
+            _baseTokenQty != 0 && _quoteTokenQtyMin != 0,
             "MathLib: INSUFFICIENT_TOKEN_QTY"
         );
 
@@ -687,7 +687,7 @@ library MathLib {
         );
 
         require(
-            quoteTokenQty > _quoteTokenQtyMin,
+            quoteTokenQty >= _quoteTokenQtyMin,
             "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"
         );
 
