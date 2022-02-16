@@ -102,7 +102,6 @@ contract Exchange is ERC20, ReentrancyGuard {
                 _baseTokenQtyMin,
                 _quoteTokenQtyMin,
                 IERC20(baseToken).balanceOf(address(this)),
-                IERC20(quoteToken).balanceOf(address(this)),
                 totalSupply,
                 internalBalances
             );

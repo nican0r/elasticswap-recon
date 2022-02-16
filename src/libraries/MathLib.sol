@@ -390,7 +390,6 @@ library MathLib {
      * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
      * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
      * @param _baseTokenReserveQty the external base token reserve qty prior to this transaction
-     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
      *
@@ -402,7 +401,6 @@ library MathLib {
         uint256 _baseTokenQtyMin,
         uint256 _quoteTokenQtyMin,
         uint256 _baseTokenReserveQty,
-        uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
     ) public returns (TokenQtys memory tokenQtys) {
@@ -475,7 +473,6 @@ library MathLib {
                         _quoteTokenQtyDesired - quoteTokenQtyFromDecay, // safe from underflow quoted on above IF
                         0, // we will check minimums below
                         0, // we will check minimums below
-                        _quoteTokenReserveQty + quoteTokenQtyFromDecay,
                         _totalSupplyOfLiquidityTokens +
                             liquidityTokenQtyFromDecay,
                         _internalBalances // NOTE: these balances have already been updated when we did the decay math.
@@ -505,7 +502,6 @@ library MathLib {
                     _quoteTokenQtyDesired,
                     _baseTokenQtyMin,
                     _quoteTokenQtyMin,
-                    _quoteTokenReserveQty,
                     _totalSupplyOfLiquidityTokens,
                     _internalBalances
                 );
@@ -539,7 +535,6 @@ library MathLib {
      * @param _quoteTokenQtyDesired the amount of quote token the user wants to contribute
      * @param _baseTokenQtyMin the minimum amount of base token the user wants to contribute (allows for slippage)
      * @param _quoteTokenQtyMin the minimum amount of quote token the user wants to contribute (allows for slippage)
-     * @param _quoteTokenReserveQty the external quote token reserve qty prior to this transaction
      * @param _totalSupplyOfLiquidityTokens the total supply of our exchange's liquidity tokens (aka Ro)
      * @param _internalBalances internal balances struct from our exchange's internal accounting
      *
@@ -552,7 +547,6 @@ library MathLib {
         uint256 _quoteTokenQtyDesired,
         uint256 _baseTokenQtyMin,
         uint256 _quoteTokenQtyMin,
-        uint256 _quoteTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
     )
@@ -598,7 +592,7 @@ library MathLib {
         liquidityTokenQty = calculateLiquidityTokenQtyForDoubleAssetEntry(
             _totalSupplyOfLiquidityTokens,
             quoteTokenQty,
-            _quoteTokenReserveQty
+            _internalBalances.quoteTokenReserveQty
         );
 
         _internalBalances.baseTokenReserveQty += baseTokenQty;
