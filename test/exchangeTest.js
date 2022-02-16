@@ -3569,8 +3569,6 @@ describe("Exchange", () => {
       );
 
       await exchangeFactory.createNewExchange(
-        "FeeOnTransferExchange",
-        "FOTX",
         feeOnTransferToken.address,
         quoteToken.address
       );
