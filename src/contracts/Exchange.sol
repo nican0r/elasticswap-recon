@@ -210,25 +210,27 @@ contract Exchange is ERC20, ReentrancyGuard {
             "Exchange: INSUFFICIENT_QUOTE_QTY"
         );
 
-        // this ensure that we are removing the equivalent amount of decay
+        // this ensures that we are removing the equivalent amount of decay
         // when this person exits.
-        uint256 baseTokenQtyToRemoveFromInternalAccounting =
-            (_liquidityTokenQty * internalBalances.baseTokenReserveQty) /
-                totalSupplyOfLiquidityTokens;
+        { //scoping to avoid stack too deep errors
+          uint256 internalBaseTokenReserveQty = internalBalances.baseTokenReserveQty;
+          uint256 baseTokenQtyToRemoveFromInternalAccounting = 
+            (_liquidityTokenQty * internalBaseTokenReserveQty) / totalSupplyOfLiquidityTokens;
 
-        internalBalances
-            .baseTokenReserveQty -= baseTokenQtyToRemoveFromInternalAccounting;
+          internalBalances.baseTokenReserveQty = internalBaseTokenReserveQty = 
+            internalBaseTokenReserveQty - baseTokenQtyToRemoveFromInternalAccounting;
 
         // We should ensure no possible overflow here.
-        if (quoteTokenQtyToReturn > internalBalances.quoteTokenReserveQty) {
-            internalBalances.quoteTokenReserveQty = 0;
-        } else {
-            internalBalances.quoteTokenReserveQty -= quoteTokenQtyToReturn;
-        }
+          uint256 internalQuoteTokenReserveQty = internalBalances.quoteTokenReserveQty;
+          if (quoteTokenQtyToReturn > internalQuoteTokenReserveQty) {
+              internalBalances.quoteTokenReserveQty = internalQuoteTokenReserveQty = 0;
+          } else {
+              internalBalances.quoteTokenReserveQty = internalQuoteTokenReserveQty = 
+                internalQuoteTokenReserveQty - quoteTokenQtyToReturn;
+          }
 
-        internalBalances.kLast =
-            internalBalances.baseTokenReserveQty *
-            internalBalances.quoteTokenReserveQty;
+          internalBalances.kLast = internalBaseTokenReserveQty * internalQuoteTokenReserveQty;
+        }
 
         if (liquidityTokenFeeQty != 0) {
             _mint(
