@@ -59,6 +59,7 @@ contract Exchange is ERC20, ReentrancyGuard {
      * @param _symbol Shortened symbol for trading pair (also used for the liquidity token symbol)
      * @param _baseToken address of the ERC20 base token in the pair. This token can have a fixed or elastic supply
      * @param _quoteToken address of the ERC20 quote token in the pair. This token is assumed to have a fixed supply.
+     * @param _exchangeFactoryAddress address of the exchange factory
      */
     constructor(
         string memory _name,
