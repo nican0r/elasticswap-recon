@@ -26,7 +26,7 @@ library MathLib {
     }
 
     uint256 public constant BASIS_POINTS = 10000;
-    uint256 public constant WAD = 10**18; // represent a decimal with 18 digits of precision
+    uint256 public constant WAD = 1e18; // represent a decimal with 18 digits of precision
 
     /**
      * @dev divides two float values, required since solidity does not handle
