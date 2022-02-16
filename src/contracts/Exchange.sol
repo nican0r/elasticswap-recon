@@ -48,8 +48,9 @@ contract Exchange is ERC20, ReentrancyGuard {
      * @dev Called to check timestamps from users for expiration of their calls.
      * Used in place of a modifier for byte code savings
      */
-    function isNotExpired(uint256 _expirationTimeStamp) internal view {
+    modifier isNotExpired(uint256 _expirationTimeStamp)  {
         require(_expirationTimeStamp >= block.timestamp, "Exchange: EXPIRED");
+        _;
     }
 
     /**
@@ -90,9 +91,8 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _quoteTokenQtyMin,
         address _liquidityTokenRecipient,
         uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
-
+    ) external nonReentrant() isNotExpired(_expirationTimestamp) {
+        
         MathLib.TokenQtys memory tokenQtys =
             MathLib.calculateAddLiquidityQuantities(
                 _baseTokenQtyDesired,
@@ -170,8 +170,7 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _quoteTokenQtyMin,
         address _tokenRecipient,
         uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
+    ) external nonReentrant() isNotExpired(_expirationTimestamp) {
         require(this.totalSupply() != 0, "Exchange: INSUFFICIENT_LIQUIDITY");
         require(
             _baseTokenQtyMin != 0 && _quoteTokenQtyMin != 0,
@@ -260,8 +259,7 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _baseTokenQty,
         uint256 _minQuoteTokenQty,
         uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
+    ) external nonReentrant() isNotExpired(_expirationTimestamp) {
         require(
             _baseTokenQty != 0 && _minQuoteTokenQty != 0,
             "Exchange: INSUFFICIENT_TOKEN_QTY"
@@ -297,8 +295,7 @@ contract Exchange is ERC20, ReentrancyGuard {
         uint256 _quoteTokenQty,
         uint256 _minBaseTokenQty,
         uint256 _expirationTimestamp
-    ) external nonReentrant() {
-        isNotExpired(_expirationTimestamp);
+    ) external nonReentrant() isNotExpired(_expirationTimestamp) {
         require(
             _quoteTokenQty != 0 && _minBaseTokenQty != 0,
             "Exchange: INSUFFICIENT_TOKEN_QTY"
