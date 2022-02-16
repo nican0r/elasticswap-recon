@@ -26,7 +26,7 @@ library MathLib {
     }
 
     uint256 public constant BASIS_POINTS = 10000;
-    uint256 public constant WAD = 10**18; // represent a decimal with 18 digits of precision
+    uint256 public constant WAD = 1e18; // represent a decimal with 18 digits of precision
 
     /**
      * @dev divides two float values, required since solidity does not handle
@@ -79,17 +79,13 @@ library MathLib {
     }
 
     // babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
-    function sqrt(uint256 y) internal pure returns (uint256 z) {
-        if (y > 3) {
-            z = y;
-            uint256 x = y / 2 + 1;
-            while (x < z) {
-                z = x;
-                x = (y / x + x) / 2;
-            }
-        } else if (y != 0) {
-            z = 1;
-        }
+    function sqrt(uint x) public pure returns (uint y) {
+      uint z = (x + 1) / 2;
+      y = x;
+      while (z < y) {
+        y = z;
+        z = (x / z + z) / 2;
+      }
     }
 
     /**
