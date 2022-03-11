@@ -8,9 +8,6 @@ describe("ExchangeFactory", () => {
   let accounts;
   let deployer;
 
-  const name = "Quote Base Pair";
-  const symbol = "QvB";
-
   beforeEach(async () => {
     accounts = await ethers.getSigners();
     [, , , , deployer] = accounts;
@@ -60,7 +57,7 @@ describe("ExchangeFactory", () => {
     it("Should deploy a new exchange and add to mappings", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
+        .createNewExchange(baseToken.address, quoteToken.address);
       const exchangeAddress =
         await exchangeFactory.exchangeAddressByTokenAddress(
           baseToken.address,
@@ -74,7 +71,8 @@ describe("ExchangeFactory", () => {
     it("Should deploy a new exchange with correct name, symbol and addresses", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
+        .createNewExchange(baseToken.address, quoteToken.address);
+
       const exchangeAddress =
         await exchangeFactory.exchangeAddressByTokenAddress(
           baseToken.address,
@@ -88,8 +86,10 @@ describe("ExchangeFactory", () => {
         deployer
       );
 
-      expect(await exchange.name()).to.equal(name);
-      expect(await exchange.symbol()).to.equal(symbol);
+      expect(await exchange.name()).to.equal(
+        "ETMvFUSD ElasticSwap Liquidity Token"
+      );
+      expect(await exchange.symbol()).to.equal("ETMvFUSD-ELP");
       expect(await exchange.quoteToken()).to.equal(quoteToken.address);
       expect(await exchange.baseToken()).to.equal(baseToken.address);
     });
@@ -98,28 +98,18 @@ describe("ExchangeFactory", () => {
       expect(
         await exchangeFactory
           .connect(deployer)
-          .createNewExchange(
-            name,
-            symbol,
-            baseToken.address,
-            quoteToken.address
-          )
+          .createNewExchange(baseToken.address, quoteToken.address)
       ).to.emit(exchangeFactory, "NewExchange");
     });
 
     it("Should revert when the same token pair is attempted to be added twice", async () => {
       await exchangeFactory
         .connect(deployer)
-        .createNewExchange(name, symbol, baseToken.address, quoteToken.address);
+        .createNewExchange(baseToken.address, quoteToken.address);
       await expect(
         exchangeFactory
           .connect(deployer)
-          .createNewExchange(
-            name,
-            symbol,
-            baseToken.address,
-            quoteToken.address
-          )
+          .createNewExchange(baseToken.address, quoteToken.address)
       ).to.be.revertedWith("ExchangeFactory: DUPLICATE_EXCHANGE");
     });
 
@@ -127,7 +117,7 @@ describe("ExchangeFactory", () => {
       await expect(
         exchangeFactory
           .connect(deployer)
-          .createNewExchange(name, symbol, baseToken.address, baseToken.address)
+          .createNewExchange(baseToken.address, baseToken.address)
       ).to.be.revertedWith("ExchangeFactory: IDENTICAL_TOKENS");
     });
 
@@ -135,23 +125,13 @@ describe("ExchangeFactory", () => {
       await expect(
         exchangeFactory
           .connect(deployer)
-          .createNewExchange(
-            name,
-            symbol,
-            baseToken.address,
-            ethers.constants.AddressZero
-          )
+          .createNewExchange(baseToken.address, ethers.constants.AddressZero)
       ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
 
       await expect(
         exchangeFactory
           .connect(deployer)
-          .createNewExchange(
-            name,
-            symbol,
-            ethers.constants.AddressZero,
-            quoteToken.address
-          )
+          .createNewExchange(ethers.constants.AddressZero, quoteToken.address)
       ).to.be.revertedWith("ExchangeFactory: INVALID_TOKEN_ADDRESS");
     });
 

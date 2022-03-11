@@ -111,7 +111,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    ΔRo = (Ro/(1 - γ)) * γ
    where,
    # ΔRo - The amount of tokens the liquidity provider receives.
-   # γ = ΔY / Y / 2 * ( ΔX / α^ )
+   # γ = ΔY / ( (Alpha/Omega) + Y' )
    # ΔY = α^ / ω   - The amount of quoteTokens required to completely offset alphaDecay.
 
    ```
@@ -122,7 +122,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
    ΔRo = (Ro/(1 - γ)) * γ
    where,
    # ΔRo - The amount of tokens the liquidity provider receives.
-   # γ = ΔX / X / 2 * ( ΔX / β^ )
+   # γ = ΔX / ( X + (Alpha + ΔX) )
    # ΔX = α - X   - The amount of baseTokens required to completely offset betaDecay(and by extension alphaDecay).
    # β^ = ΔX  / ω
 
@@ -179,9 +179,9 @@ For the rebasing token - `baseToken`, any ERC20 token which is Elastic in nature
 
 > Note: Support for tokens that have Fee on transfer behaviour will **not** supported in V1.
 
-## A complete example
+## Examples:
 
-This example is to illustrate all the concepts in one series of hypothetical (but plausible) chain of events
+Example 1: This example is to illustrate all the concepts in one series of hypothetical (but plausible) chain of events
 
 ```
   Liquidity provider #1 provides 1000000 baseTokens and 1000000 quoteTokens.
@@ -208,7 +208,7 @@ Swapper #1 receives deltaX baseTokens, where:
   deltaX = 990128.419656029387 - 1000000 = -9871.580343970613 (The negative sign simply indicates that the baseTokens are going to the   swapper )
   Y' = Y + deltaY = 1000000 + 10000 = 1010000
   alpha' = alpha + deltaAlpha = 1000000 + (-9871.580343970613) = 990128.419656029387 ( Note: deltaX = deltaAlpha for swap events)
-  beta' = beta + betaDecay = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
+  beta' = beta + deltaBeta = 1000000 + 10000 = 1010000 ( Note: deltaY = deltaBeta for swap events)
   alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
   betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
   K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
@@ -280,14 +280,12 @@ Now liquidity provider #2 comes along and wants to do a SingleAssetEntry(this is
 For which the liquidity tokens issued to liquidity provider #2 (deltaRo) are given by:
   deltaRo = (Ro/(1 - gamma)) * gamma
   where Gamma is given by,
-    gamma = deltaY / Y / 2 * ( deltaX / alphaDecay ),
-    where deltaX is given by,
-      deltaX = deltaY * Omega,
+    gamma = deltaY / ( (Alpha/Omega) + Y' )
+    where Y' = Y + deltaY = 1020000 + 257517.178217821776 = 1277517.17821782178
 
   Therefore,
-  deltaX =  257517.178217821776 * 0.961225602995041647 = 247532.104914007341
-  gamma =  257517.178217821776 / 1020000 / 2 * (247532.104914007341 / 247532.104914007341 ) = 0.126233910891089106
-  deltaRo = (1000000 / ( 1- 0.126233910891089106) * 0.126233910891089106 = 144471.057488424266
+  gamma =  257517.178217821776 / ((1227982.21996894982 / 0.961225602995041647 ) + 1277517.17821782178) = 0.100788146965298211
+  deltaRo = (1000000 / ( 1- 0.100788146965298211) * 0.100788146965298211 = 112084.984895554598
   X' = X + deltaX = 980450.115054942479 + 247532.104914007341 = 1227982.21996894982
   Y' = Y + deltaY = 1020000 + 257517.178217821776 = 1277517.17821782178
   deltaAlpha = 0
@@ -299,7 +297,7 @@ For which the liquidity tokens issued to liquidity provider #2 (deltaRo) are giv
   Sigma' = alpha' / beta' = 1227982.21996894982/1277517.17821782178 = 0.961225602995041643
   K' = X' * Y' = 1227982.21996894982 * 1277517.17821782178 = 1568768380556.38929
   Omega' = X' / Y' = 1227982.21996894982/1277517.17821782178 = 0.961225602995041643
-  Ro' = Ro + deltaRo = 1000000 + 144471.057488424266 = 1144471.05748842427
+  Ro' = Ro + deltaRo = 1000000 + 112084.984895554598 = 1112084.9848955546
 
 
 
@@ -313,7 +311,7 @@ Therefore at the end of the SingleAssetEntry the state of the AMM is:
   Sigma = 0.961225602995041643
   alphaDecay = 0
   betaDecay = 0
-  Ro = 1144471.05748842427
+  Ro = 1112084.9848955546
   (Note: Omega = Sigma, which is expected behaviour)
 
 -------------------------------------------------------------------------------------------------------------------
@@ -328,39 +326,39 @@ Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives
     deltaRo - The number of liquidity tokens to be redeemed - here it is all that he had initially received
 
   Hence we get,
-    deltaRo = (-1) * 144471.057488424266 = -144471.057488424266
-    deltaX = 1227982.21996894982 * (-144471.057488424266) / 1144471.05748842427 = -155012.998131402192
-    deltaY = 1277517.17821782178 * (-144471.057488424266) / 1144471.05748842427 = -161265.989636984114
+    deltaRo = (-1) * 112084.984895554598 = -112084.984895554598
+    deltaX = 1227982.21996894982 * (-112084.984895554598) / 1112084.984895554598 = -123766.05245700367
+    deltaY = 1277517.17821782178 * (-112084.984895554598) / 1112084.984895554598 = -128758.589108910888
     (Note: (-1) is because the  deltaRo is being redeemed for underlying quantities of deltaX and deltaY)
     deltaX = deltaAlpha
     deltaY = deltaBeta
 
-    X' = X + deltaX = 1227982.21996894982 + (-155012.998131402192) = 1072969.22183754763
-    Y' = Y + deltaY = 1277517.17821782178 + (-161265.989636984114) = 1116251.18858083767
-    K' = X'* Y' = 1072969.22183754763 * 1116251.18858083767 = 1197703169186.81903
-    Ro' = Ro + deltaRo = 1144471.05748842427 + (-144471.057488424266) = 1000000
-    alpha' = alpha + deltaAlpha = 1227982.21996894982 + (-155012.998131402192) = 1072969.22183754763
-    beta' = beta + deltaBeta = 1277517.17821782178 + (-161265.989636984114) = 1116251.18858083767
-    Sigma' = alpha'/ beta' = 1072969.22183754763 /1116251.18858083767 = 0.961225602995041641
-    Omega' = X'/Y' = 1072969.22183754763/1116251.18858083767 = 0.961225602995041641
-    alphaDecay' = alpha' - X' = 1072969.22183754763 - 1072969.22183754763 = 0
-    betaDecay = beta' - Y' =  1116251.18858083767 - 1116251.18858083767 = 0
+    X' = X + deltaX = 1227982.21996894982 + (-123766.05245700367) = 1104216.16751194615
+    Y' = Y + deltaY = 1277517.17821782178 + (-128758.589108910888) = 1148758.58910891089
+    K' = X'* Y' = 1104216.16751194615 * 1148758.58910891089 = 1268477806662.27207
+    Ro' = Ro + deltaRo = 1112084.9848955546 + (-112084.984895554598) = 1000000
+    alpha' = alpha + deltaAlpha = 1227982.21996894982 + (-123766.05245700367) = 1104216.16751194615
+    beta' = beta + deltaBeta = 1277517.17821782178 + (-128758.589108910888) = 1148758.58910891089
+    Sigma' = alpha'/ beta' = 1104216.16751194615 / 1148758.58910891089 = 0.961225602995041645
+    Omega' = X'/Y' = 1104216.16751194615 / 1148758.58910891089 = 0.961225602995041645
+    alphaDecay' = alpha' - X' = 1104216.16751194615 - 1104216.16751194615 = 0
+    betaDecay = beta' - Y' =  1148758.58910891089 - 1148758.58910891089 = 0
     //(Note: Omega' = Omega = Sigma' = Sigma , this is expected behaviour)
 
   Therefore at the end of the redemption of liquidity tokens event the state of the AMM is:
-    X = 1072969.22183754763
-    Y = 1116251.18858083767
-    K = 1197703169186.81903
-    alpha = 1072969.22183754763
-    beta = 1116251.18858083767
-    Omega = 0.961225602995041641
-    Sigma =  0.961225602995041641
+    X = 1104216.16751194615
+    Y = 1148758.58910891089
+    K = 1268477806662.27207
+    alpha = 1104216.16751194615
+    beta = 1148758.58910891089
+    Omega = 0.961225602995041645
+    Sigma =  0.961225602995041645
     alphaDecay = 0
     betaDecay = 0
     Ro = 1000000
   And LP #2 has received,
-    baseTokens = 155012.998131402192
-    quoteTokens = 161265.989636984114
+    baseTokens = 123766.05245700367
+    quoteTokens = 128758.589108910888
 
 -------------------------------------------------------------------------------------------------------------------
 Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives a certain amount of baseTokens and quoteTokens, given by:
@@ -375,15 +373,54 @@ Now, liquidity provider #1 decides to withdraw all of his liquidity, he receives
 
   Hence we get,
     deltaRo = (-1) * 1000000 = -1000000
-    deltaX = 1072969.22183754763 * (-1000000)/1000000 = -1072969.22183754763
-    deltaY = 1116251.18858083767 * (-1000000)/1000000 = -1116251.18858083767
+    deltaX = 1104216.16751194615 * (-1000000)/1000000 = -1104216.16751194615
+    deltaY = 1148758.58910891089 * (-1000000)/1000000 = -1148758.58910891089
     (Note: (-1) is because the  deltaRo is being redeemed for underlying quantities of deltaX and deltaY)
 
-  Hence LP#1 receives 1072969.22183754763 amount of baseTokens and 1116251.18858083767 amount of quoteTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
+  Hence LP#1 receives 1104216.16751194615 amount of baseTokens and 1148758.58910891089 amount of quoteTokens, he has benefitted from the trades(accrual of fees) and the rebase event.
 
   LP#1 initial v final state:
-  baseTokens -> final - initial = 1072969.22183754763 - 1000000 = 72969.22183754763
-  quoteTokens -> final - initial = 1116251.18858083767 - 1000000 = 116251.18858083767
+  baseTokens -> final - initial = 1104216.16751194615 - 1000000 = 104216.16751194615
+  quoteTokens -> final - initial = 1148758.58910891089 - 1000000 = 148758.58910891089
+```
+Example 2:  Rebase down -> SAE + DAE  -> exit  
+
+```
+LP #1 sets the pool with 10k baseTokens, 10k quoteToken, hence 10k Ro for LP1
+Omega = 1
+Rebase down of 5k happens
+X = 10,000
+Alpha = 5000
+Y = 10,000
+Beta = 10,000
+Ro = 10,000 (all LP#1 owned )
+
+LP#2 comes along and wants to do SAE+DAE
+baseTokenAmountProvided = ((iOmega)*5000 + 10000
+                        = 15,000
+quoteTokenAmount provided = 10k
+
+LP token LP#2 recieves:
+For SAE: (5000 baseTokens) -> 3333 LP tokens
+  At this stage: X, Y, Alpha, Beta = 10k
+Now DAE (10k basetokens + 10k quoteTokens) => (10000/10000) * 13333  = 13333 LP tokens
+Hence, the LP#2 gets = 3333 + 13333 = 16666 tokens
+State of the pool: 
+X: 20k
+Alpha: 20k
+Y: 20k
+Beta 20k
+LP outstanding = 26666 (10,000 -> LP#1, 16666 -> LP#2)
+
+LP#1 exits their LP position:
+Basetokens recieved = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
+quoteToken recieved = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
+
+State of the pool: 
+X, Alpha, Beta, Y: ~12500
+LP#2 exits their LP position:
+BaseToken receieved = 16666 / 16666 * 12500 = ~12500 (had put in 15k)
+QuoteToken receieved = 16666 / 16666 * 12500 = ~12500 (had put in 10k)
 
 
 ```

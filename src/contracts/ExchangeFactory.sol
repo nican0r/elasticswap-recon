@@ -1,10 +1,11 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Exchange.sol";
 import "../interfaces/IExchangeFactory.sol";
+import "../libraries/SafeMetadata.sol";
 
 /**
  * @title ExchangeFactory contract for Elastic Swap.
@@ -14,6 +15,8 @@ import "../interfaces/IExchangeFactory.sol";
  * lookup.
  */
 contract ExchangeFactory is Ownable, IExchangeFactory {
+    using SafeMetadata for IERC20;
+
     mapping(address => mapping(address => address))
         public exchangeAddressByTokenAddress;
     mapping(address => bool) public isValidExchangeAddress;
@@ -31,17 +34,12 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
 
     /**
      * @notice called to create a new erc20 token pair exchange
-     * @param _name The human readable name of this pair (also used for the liquidity token name)
-     * @param _symbol Shortened symbol for trading pair (also used for the liquidity token symbol)
      * @param _baseToken address of the ERC20 base token in the pair. This token can have a fixed or elastic supply
      * @param _quoteToken address of the ERC20 quote token in the pair. This token is assumed to have a fixed supply.
      */
-    function createNewExchange(
-        string memory _name,
-        string memory _symbol,
-        address _baseToken,
-        address _quoteToken
-    ) external {
+    function createNewExchange(address _baseToken, address _quoteToken)
+        external
+    {
         require(_baseToken != _quoteToken, "ExchangeFactory: IDENTICAL_TOKENS");
         require(
             _baseToken != address(0) && _quoteToken != address(0),
@@ -53,10 +51,20 @@ contract ExchangeFactory is Ownable, IExchangeFactory {
             "ExchangeFactory: DUPLICATE_EXCHANGE"
         );
 
+        string memory baseSymbol = IERC20(_baseToken).safeSymbol();
+        string memory quoteSymbol = IERC20(_quoteToken).safeSymbol();
+
         Exchange exchange =
             new Exchange(
-                _name,
-                _symbol,
+                string(
+                    abi.encodePacked(
+                        baseSymbol,
+                        "v",
+                        quoteSymbol,
+                        " ElasticSwap Liquidity Token"
+                    )
+                ),
+                string(abi.encodePacked(baseSymbol, "v", quoteSymbol, "-ELP")),
                 _baseToken,
                 _quoteToken,
                 address(this)
