@@ -47,7 +47,6 @@ contract Exchange is ERC20, ReentrancyGuard {
 
     /**
      * @dev Called to check timestamps from users for expiration of their calls.
-     * Used in place of a modifier for byte code savings
      */
     modifier isNotExpired(uint256 _expirationTimeStamp) {
         require(_expirationTimeStamp >= block.timestamp, "Exchange: EXPIRED");
