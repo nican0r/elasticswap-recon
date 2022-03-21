@@ -41,7 +41,7 @@ module.exports = {
         process.env.FUJI_PRIVATE_KEY !== undefined ? [process.env.FUJI_PRIVATE_KEY] : [],
     },
     avalanche: {
-      deploy: ["deploy"],
+      deploy: ["deploy/core"],
       url: 'https://api.avax.network/ext/bc/C/rpc',
       gasPrice: 50000000000, // 58 nAVAX (10e9)
       chainId: 43114,
