@@ -1,6 +1,6 @@
 {
   "name": "@elasticswap/elasticswap",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "The first AMM with native support for tokens with elastic supply",
   "main": "index.js",
   "private": false,
@@ -51,7 +51,7 @@
     "bignumber.js": "^9.0.2",
     "dotenv": "^16.0.0",
     "hardhat-contract-sizer": "^2.0.3",
-    "hardhat-deploy": "^0.8.6",
+    "hardhat-deploy": "^0.10.6",
     "hardhat-gas-reporter": "^1.0.4",
     "solidity-coverage": "^0.7.17"
   }
