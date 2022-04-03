@@ -3,11 +3,11 @@
 The first automated market maker (AMM) with native support for tokens with elastic supply
 
 # Avalanche Mainnet deployment
-[Commit hash of deployment](https://github.com/ElasticSwap/elasticswap/commit/4e6fb2c62dbfcb88534ec4cb160a8a8de09c0d1b)
+[Commit hash of deployment](https://github.com/ElasticSwap/elasticswap/commit/1fe434e8d424c55175f0be3912b6c06e8d3ad621)
 
-- [ExchangeFactory.sol](https://snowtrace.io/address/0xca07326c7a669f937c70451c47083e09626077d0)
-- [MathLib.sol](https://snowtrace.io/address/0x28e3f7d60369e734287e8201be94ea022b2ab32a)
-- [SafeMetaData.sol](https://snowtrace.io/address/0x14470bff8ff76ef40ad693855a3704427655003f)
+- [ExchangeFactory.sol](https://snowtrace.io/address/0x8B3D780Db8842593d8b61632A2F76c4D4f31D7C3)
+- [MathLib.sol](https://snowtrace.io/address/0xE3C08c95aa81474f44Bee23f8C45d470ddaD37Be)
+- [SafeMetaData.sol](https://snowtrace.io/address/0xe24953B2E641c9e026c49C925D9564cDb542606A)
 
 # Code Audit
 C4 completed a code audit as of commit hash: a90bb67e2817d892b517da6c1ba6fae5303e9867

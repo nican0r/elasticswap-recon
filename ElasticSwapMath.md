@@ -15,7 +15,7 @@ Elastic Swap is the first Automated Market Maker (AMM) to natively support token
 - `XDash (X')` -> `X' = ΔX + X` - The new quantity of `X` post the occurrence of a trade or a liquidity event
 - `Y` - The internal balance of `quoteToken`, for accounting purposes.
 - `DeltaY (ΔY)` - The (incoming or outgoing) change in the quantity of `Y`
-- `YDash (Y')` -> `Y' = ΔY + Y` - The new quantity of `Y` post the occurence of a trade or a liquidity event
+- `YDash (Y')` -> `Y' = ΔY + Y` - The new quantity of `Y` post the occurrence of a trade or a liquidity event
 - `Alpha (α)` - The ERC20 balance of `baseToken` currently in the exchange.
 - `Beta (β)` - The ERC20 balance of `quoteToken` currently in the exchange.
 - `Omega (ω)` - `X/Y` - The ratio of the internal balance of `baseToken` to the internal balance of `quoteToken`.
@@ -55,7 +55,7 @@ There are multiple ways to provide liquidity: creating an Elastic AMM pool, `sin
 
      Note: Initially, Ro = 0, hence after creation of the pool,
             Ro' = ΔRo + Ro =>  Ro' = ΔRo + 0
-            (this becomes the Ro for other liquidity events, the dash and delta notation (Ro', ΔX, ΔY) is further explained in the Double Aset entry section)
+            (this becomes the Ro for other liquidity events, the dash and delta notation (Ro', ΔX, ΔY) is further explained in the Double Asset entry section)
 
 
    ```
@@ -169,15 +169,13 @@ The function that handles this is `removeLiquidity` in [Exchange.sol](https://gi
 
 As with any other AMM the incentive to provide liquidity is so that the LP tokens issued accrue fees.
 
-There is a 30 Basis points(BP) fee for swap occurences(this is at par with other AMM's at the moment, this can be changed via vote if the ElasticSwap DAO votes to do so ), 5 BP of which goes the `feeAddress` (an address which is ElasticDAO initially, this can be changed via vote if the ElasticSwap DAO votes to do so). The remaining 25 BP is realised by the LP holders pro-rata.
-
-The fees are accrued on swap occurences, the portion of the fees (5 BP) that the `feeAddress` receives is sent to it when liquidity events occur.
+There is a 50 Basis points(BP) fee for swaps. 25 BP goes to the LP providers, 20 BP to stakers in our MerklePools and 5 BP to the DAO. 
 
 ## Tokens supported by ElasticSwap:
 
 For the rebasing token - `baseToken`, any ERC20 token which is Elastic in nature, i.e it's supply contracts and expands due to external factors can be used to create a pool with a standard ERC20 non elastic token - `quoteToken`.
 
-> Note: Support for tokens that have Fee on transfer behaviour will **not** supported in V1.
+> Note: Support for tokens that have Fee on transfer behavior will **not** supported in V1.
 
 ## Examples:
 
@@ -212,7 +210,7 @@ Swapper #1 receives deltaX baseTokens, where:
   alphaDecay' = alpha' - X' = 990128.419656029387 - 990128.419656029387 = 0
   betaDecay' = beta' - Y' = 1010000 - 1010000 = 0
   K' = X' * Y' = 990128.419656029387 * 1010000 = 1000029703852.58968
-  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro) = (10000*0.003*1000000)/(6 * 1000000)
+  feeAddress(ElasticDAO) receives: ((deltaY/Y)*(liquidityFee/6)*Ro) = (10000*0.003*1000000)/(6 * 1000000)
 
 Therefore, post 1st swap, the state of the AMM is:
   X = 990128.419656029387
@@ -225,7 +223,7 @@ Therefore, post 1st swap, the state of the AMM is:
   BetaDecay = 1010000 - 1010000 =  0
   K = X*Y = 990128.419656029387 * 1010000 = 1000029703852.58968
   Ro = 1000000
-  feeAddress(ElasticDAO) recieves: 5 Ro
+  feeAddress(ElasticDAO) receives: 5 Ro
    hence total Ro the feeAddress has 5 Ro
 
   (Note: Omega is equal to Sigma)
@@ -256,7 +254,7 @@ Swapper #2 receives deltaX baseTokens, where:
   beta' = 1010000 + 10000 = 1020000
   betaDecay' = 1020000 - 1020000 = 0
   K' = X' * Y' = 980450.115054942479 * 1020000 = 1000059117356.04133
-  feeAddress(ElasticDAO) recieves: ((deltaY/Y)*(liquidityFee/6)*Ro): (10000 * 0.003 * 1000000)/(6 * 1010000)
+  feeAddress(ElasticDAO) receives: ((deltaY/Y)*(liquidityFee/6)*Ro): (10000 * 0.003 * 1000000)/(6 * 1010000)
 
 Therefore, post 2nd swap, the state of the AMM is:
   X = 980450.115054942479
@@ -269,7 +267,7 @@ Therefore, post 2nd swap, the state of the AMM is:
   AlphaDecay = 247532.104914007341
   BetaDecay = 0
   Ro = 1000000
-  feeAddress(ElasticDAO) recieves: 4.9504950495049505 Ro,
+  feeAddress(ElasticDAO) receives: 4.9504950495049505 Ro,
     hence total Ro the feeAddress has 4.9504950495049505 + 5 = 9.9504950495049505 Ro
   (Note: The swap was unaffected by the occurrence of a rebase event prior to the trade(resulting in the presence of non-zero decay))
 -------------------------------------------------------------------------------------------------------------------
@@ -312,7 +310,7 @@ Therefore at the end of the SingleAssetEntry the state of the AMM is:
   alphaDecay = 0
   betaDecay = 0
   Ro = 1112084.9848955546
-  (Note: Omega = Sigma, which is expected behaviour)
+  (Note: Omega = Sigma, which is expected behavior)
 
 -------------------------------------------------------------------------------------------------------------------
 Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives a certain amount of baseTokens and quoteTokens, given by:
@@ -343,7 +341,7 @@ Now, liquidity provider #2 decides to withdraw all of his liquidity, he receives
     Omega' = X'/Y' = 1104216.16751194615 / 1148758.58910891089 = 0.961225602995041645
     alphaDecay' = alpha' - X' = 1104216.16751194615 - 1104216.16751194615 = 0
     betaDecay = beta' - Y' =  1148758.58910891089 - 1148758.58910891089 = 0
-    //(Note: Omega' = Omega = Sigma' = Sigma , this is expected behaviour)
+    //(Note: Omega' = Omega = Sigma' = Sigma , this is expected behavior)
 
   Therefore at the end of the redemption of liquidity tokens event the state of the AMM is:
     X = 1104216.16751194615
@@ -400,10 +398,10 @@ baseTokenAmountProvided = ((iOmega)*5000 + 10000
                         = 15,000
 quoteTokenAmount provided = 10k
 
-LP token LP#2 recieves:
+LP token LP#2 receives:
 For SAE: (5000 baseTokens) -> 3333 LP tokens
   At this stage: X, Y, Alpha, Beta = 10k
-Now DAE (10k basetokens + 10k quoteTokens) => (10000/10000) * 13333  = 13333 LP tokens
+Now DAE (10k baseTokens + 10k quoteTokens) => (10000/10000) * 13333  = 13333 LP tokens
 Hence, the LP#2 gets = 3333 + 13333 = 16666 tokens
 State of the pool: 
 X: 20k
@@ -413,14 +411,14 @@ Beta 20k
 LP outstanding = 26666 (10,000 -> LP#1, 16666 -> LP#2)
 
 LP#1 exits their LP position:
-Basetokens recieved = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
-quoteToken recieved = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
+BaseTokens received = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
+quoteToken received = (10000/26666) * 20000 = ~7500.18750468761719 (had put in 10k)
 
 State of the pool: 
 X, Alpha, Beta, Y: ~12500
 LP#2 exits their LP position:
-BaseToken receieved = 16666 / 16666 * 12500 = ~12500 (had put in 15k)
-QuoteToken receieved = 16666 / 16666 * 12500 = ~12500 (had put in 10k)
+BaseToken received = 16666 / 16666 * 12500 = ~12500 (had put in 15k)
+QuoteToken received = 16666 / 16666 * 12500 = ~12500 (had put in 10k)
 
 
 ```
