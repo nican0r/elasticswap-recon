@@ -1392,7 +1392,7 @@
       "chainId": "43114",
       "contracts": {
         "MathLib": {
-          "address": "0x28e3f7d60369e734287e8201be94EA022B2aB32A",
+          "address": "0xE3C08c95aa81474f44Bee23f8C45d470ddaD37Be",
           "abi": [
             {
               "inputs": [],
@@ -1846,11 +1846,11 @@
           ]
         },
         "SafeMetadata": {
-          "address": "0x14470bff8ff76ef40ad693855a3704427655003f",
+          "address": "0xe24953B2E641c9e026c49C925D9564cDb542606A",
           "abi": []
         },
         "ExchangeFactory": {
-          "address": "0xCa07326c7a669f937c70451c47083e09626077D0",
+          "address": "0x8B3D780Db8842593d8b61632A2F76c4D4f31D7C3",
           "abi": [
             {
               "inputs": [

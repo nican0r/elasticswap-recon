@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("hardhat-gas-reporter");
 require("hardhat-deploy");
@@ -46,13 +47,18 @@ module.exports = {
     avalanche: {
       deploy: ["deploy/core"],
       url: "https://api.avax.network/ext/bc/C/rpc",
-      gasPrice: 50000000000, // 58 nAVAX (10e9)
+      gasPrice: 106000000000, // 58 nAVAX (10e9)
       chainId: 43114,
       accounts:
         process.env.AVAX_PRIVATE_KEY !== undefined
           ? [process.env.AVAX_PRIVATE_KEY]
           : [],
     },
+  },
+  etherscan: {
+    // Your API key for Snowtrace
+    // Obtain one at https://snowtrace.io/
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
   paths: {
     deploy: ["deploy/core"],
