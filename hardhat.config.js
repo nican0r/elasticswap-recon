@@ -26,6 +26,13 @@ module.exports = {
     hardhat: {
       deploy: ["deploy/core", "deploy/test", "deploy/testnet"],
     },
+    mainnet: {
+      deploy: ["deploy/core"],
+      url: process.env.MAINNET_URL || "",
+      accounts:
+        process.env.MAINNET_PRIVATE_KEY !== undefined ? [process.env.MAINNET_PRIVATE_KEY] : [],
+      gasPrice: "auto"
+    },
     goerli: {
       deploy: ["deploy/core", "deploy/testnet"],
       url: process.env.GOERLI_URL,
@@ -85,12 +92,14 @@ module.exports = {
       goerli: process.env.GOERLI_FEE_ADDRESS,
       fuji: process.env.FUJI_FEE_ADDRESS,
       avalanche: process.env.AVAX_FEE_ADDRESS,
+      mainnet: process.env.MAINNET_FEE_ADDRESS
     },
     DAO: {
       default: 9,
       goerli: process.env.GOERLI_DAO_ADDRESS,
       fuji: process.env.FUJI_DAO_ADDRESS,
       avalanche: process.env.AVAX_DAO_ADDRESS,
+      mainnet: process.env.MAINNET_DAO_ADDRESS
     },
   },
   contractSizer: {
