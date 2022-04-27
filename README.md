@@ -9,6 +9,12 @@ The first automated market maker (AMM) with native support for tokens with elast
 - [MathLib.sol](https://snowtrace.io/address/0xE3C08c95aa81474f44Bee23f8C45d470ddaD37Be)
 - [SafeMetaData.sol](https://snowtrace.io/address/0xe24953B2E641c9e026c49C925D9564cDb542606A)
 
+# Ethereum Mainnet deployment
+
+- [ExchangeFactory.sol](https://etherscan.io/address/0x8B3D780Db8842593d8b61632A2F76c4D4f31D7C3)
+- [MathLib.sol](https://etherscan.io/address/0xe3c08c95aa81474f44bee23f8c45d470ddad37be)
+- [SafeMetaData.sol](https://etherscan.io/address/0xe24953B2E641c9e026c49C925D9564cDb542606A)
+
 # Code Audit
 C4 completed a code audit as of commit hash: a90bb67e2817d892b517da6c1ba6fae5303e9867
 https://code4rena.com/reports/2022-01-elasticswap/
