@@ -15,6 +15,12 @@ The first automated market maker (AMM) with native support for tokens with elast
 - [MathLib.sol](https://etherscan.io/address/0xe3c08c95aa81474f44bee23f8c45d470ddad37be)
 - [SafeMetaData.sol](https://etherscan.io/address/0xe24953B2E641c9e026c49C925D9564cDb542606A)
 
+# Goerli deployment
+- [ExchangeFactory.sol](https://goerli.etherscan.io/address/0xA111d3cBBd2D4d4a2b0C588Ae516C4F577024B42)
+- [MathLib.sol](https://goerli.etherscan.io/address/0x51598189F871C9239647370a68793Ff3798bCD3A)
+- [SafeMetaData.sol](https://goerli.etherscan.io/address/0x359a1F813176c40E872E756a2E16723E97BE96d2)
+
+
 # Code Audit
 C4 completed a code audit as of commit hash: a90bb67e2817d892b517da6c1ba6fae5303e9867
 https://code4rena.com/reports/2022-01-elasticswap/
