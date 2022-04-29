@@ -16,6 +16,7 @@ The first automated market maker (AMM) with native support for tokens with elast
 - [SafeMetaData.sol](https://etherscan.io/address/0xe24953B2E641c9e026c49C925D9564cDb542606A)
 
 # Goerli deployment
+
 - [ExchangeFactory.sol](https://goerli.etherscan.io/address/0xA111d3cBBd2D4d4a2b0C588Ae516C4F577024B42)
 - [MathLib.sol](https://goerli.etherscan.io/address/0x51598189F871C9239647370a68793Ff3798bCD3A)
 - [SafeMetaData.sol](https://goerli.etherscan.io/address/0x359a1F813176c40E872E756a2E16723E97BE96d2)
