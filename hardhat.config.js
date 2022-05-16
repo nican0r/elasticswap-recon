@@ -41,6 +41,14 @@ module.exports = {
           ? [process.env.GOERLI_PRIVATE_KEY]
           : [],
     },
+    kovan: {
+      deploy: ["deploy/core", "deploy/testnet"],
+      url: process.env.KOVAN_URL,
+      accounts:
+        process.env.KOVAN_PRIVATE_KEY !== undefined
+          ? [process.env.KOVAN_PRIVATE_KEY]
+          : [],
+    },
     fuji: {
       deploy: ["deploy/core", "deploy/testnet"],
       url: "https://api.avax-test.network/ext/bc/C/rpc",
@@ -89,6 +97,7 @@ module.exports = {
     },
     feeRecipient: {
       default: 5,
+      kovan: process.env.KOVAN_FEE_ADDRESS,
       goerli: process.env.GOERLI_FEE_ADDRESS,
       fuji: process.env.FUJI_FEE_ADDRESS,
       avalanche: process.env.AVAX_FEE_ADDRESS,
@@ -96,6 +105,7 @@ module.exports = {
     },
     DAO: {
       default: 9,
+      kovan: process.env.KOVAN_DAO_ADDRESS,
       goerli: process.env.GOERLI_DAO_ADDRESS,
       fuji: process.env.FUJI_DAO_ADDRESS,
       avalanche: process.env.AVAX_DAO_ADDRESS,
