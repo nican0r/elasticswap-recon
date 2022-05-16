@@ -21,6 +21,11 @@ The first automated market maker (AMM) with native support for tokens with elast
 - [MathLib.sol](https://goerli.etherscan.io/address/0x51598189F871C9239647370a68793Ff3798bCD3A)
 - [SafeMetaData.sol](https://goerli.etherscan.io/address/0x359a1F813176c40E872E756a2E16723E97BE96d2)
 
+# Kovan deployment
+
+- [ExchangeFactory.sol](https://kovan.etherscan.io/address/0x37194C95B6482806320401c7035f63368Baa3110)
+- [MathLib.sol](https://kovan.etherscan.io/address/0x949AceE2D1281E4Ca3bA1A749473Fe97298519Ac)
+- [SafeMetaData.sol](https://kovan.etherscan.io/address/0xb64Bb2F7f296B026DF87CB6Ab9Bb7CEb036b4857)
 
 # Code Audit
 C4 completed a code audit as of commit hash: a90bb67e2817d892b517da6c1ba6fae5303e9867
