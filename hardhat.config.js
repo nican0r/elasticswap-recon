@@ -5,6 +5,7 @@ require("hardhat-gas-reporter");
 require("hardhat-deploy");
 require("solidity-coverage");
 require("dotenv").config();
+require("@nomicfoundation/hardhat-foundry");
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -39,7 +40,7 @@ module.exports = {
       accounts:
         process.env.GOERLI_PRIVATE_KEY !== undefined
           ? [process.env.GOERLI_PRIVATE_KEY]
-          : [],
+          : [""],
     },
     kovan: {
       deploy: ["deploy/core", "deploy/testnet"],
@@ -47,7 +48,7 @@ module.exports = {
       accounts:
         process.env.KOVAN_PRIVATE_KEY !== undefined
           ? [process.env.KOVAN_PRIVATE_KEY]
-          : [],
+          : [""],
     },
     fuji: {
       deploy: ["deploy/core", "deploy/testnet"],
