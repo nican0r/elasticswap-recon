@@ -1,0 +1,13 @@
+
+# testMode: "assertion"
+prefix: "invariant_"
+coverage: true
+corpusDir: "echidna"
+balanceAddr: 0x1043561a8829300000
+balanceContract: 0x1043561a8829300000
+filterFunctions: []
+# max number of test seqs to run, default is 50000
+# increasing to 100k to see if it increases coverage
+testLimit: 100000
+deployContracts: [["0x1f", "MathLib"]]
+cryticArgs: ["--compile-libraries=(MathLib,0x1f)"]

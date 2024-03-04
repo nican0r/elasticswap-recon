@@ -25,6 +25,7 @@ contract Exchange is ERC20, ReentrancyGuard {
     uint256 public constant TOTAL_LIQUIDITY_FEE = 50; // fee provided to liquidity providers + DAO in basis points
     uint256 public constant MINIMUM_LIQUIDITY = 1e3;
 
+    // @audit cant be changed to private because makes it inaccesible in BeforeAfter
     MathLib.InternalBalances public internalBalances;
 
     event AddLiquidity(

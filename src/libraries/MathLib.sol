@@ -37,7 +37,7 @@ library MathLib {
      *
      * @return uint256 wad value (decimal with 18 digits of precision)
      */
-    function wDiv(uint256 a, uint256 b) public pure returns (uint256) {
+    function wDiv(uint256 a, uint256 b) internal pure returns (uint256) {
         return ((a * WAD) + (b / 2)) / b;
     }
 
@@ -46,7 +46,7 @@ library MathLib {
      * IE roundToNearest(123, 10) would round to the nearest 10th place (120).
      */
     function roundToNearest(uint256 a, uint256 n)
-        public
+        internal
         pure
         returns (uint256)
     {
@@ -61,7 +61,7 @@ library MathLib {
      *
      * @return uint256 wad value (decimal with 18 digits of precision)
      */
-    function wMul(uint256 a, uint256 b) public pure returns (uint256) {
+    function wMul(uint256 a, uint256 b) internal pure returns (uint256) {
         return ((a * b) + (WAD / 2)) / WAD;
     }
 
@@ -69,7 +69,7 @@ library MathLib {
      * @dev calculates an absolute diff between two integers. Basically the solidity
      * equivalent of Math.abs(a-b);
      */
-    function diff(uint256 a, uint256 b) public pure returns (uint256) {
+    function diff(uint256 a, uint256 b) internal pure returns (uint256) {
         if (a >= b) {
             return a - b;
         }
@@ -77,7 +77,7 @@ library MathLib {
     }
 
     // babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
-    function sqrt(uint256 x) public pure returns (uint256 y) {
+    function sqrt(uint256 x) internal pure returns (uint256 y) {
         uint256 z = (x + 1) / 2;
         y = x;
         while (z < y) {
@@ -93,7 +93,7 @@ library MathLib {
     function isSufficientDecayPresent(
         uint256 _baseTokenReserveQty,
         InternalBalances memory _internalBalances
-    ) public pure returns (bool) {
+    ) internal pure returns (bool) {
         return (wDiv(
             diff(_baseTokenReserveQty, _internalBalances.baseTokenReserveQty) *
                 WAD,
@@ -115,7 +115,7 @@ library MathLib {
         uint256 _tokenAQty,
         uint256 _tokenAReserveQty,
         uint256 _tokenBReserveQty
-    ) public pure returns (uint256 tokenBQty) {
+    ) internal pure returns (uint256 tokenBQty) {
         require(_tokenAQty != 0, "MathLib: INSUFFICIENT_QTY");
         require(
             _tokenAReserveQty != 0 && _tokenBReserveQty != 0,
@@ -137,7 +137,7 @@ library MathLib {
         uint256 _tokenAReserveQty,
         uint256 _tokenBReserveQty,
         uint256 _liquidityFeeInBasisPoints
-    ) public pure returns (uint256 qtyToReturn) {
+    ) internal pure returns (uint256 qtyToReturn) {
         uint256 tokenASwapQtyLessFee =
             _tokenASwapQty * (BASIS_POINTS - _liquidityFeeInBasisPoints);
         qtyToReturn =
@@ -161,7 +161,7 @@ library MathLib {
         uint256 _tokenQtyAToAdd,
         uint256 _internalTokenAReserveQty,
         uint256 _omega
-    ) public pure returns (uint256 liquidityTokenQty) {
+    ) internal pure returns (uint256 liquidityTokenQty) {
         /**
         
         (is the formula in the terms of quoteToken)
@@ -197,7 +197,7 @@ library MathLib {
         uint256 _totalSupplyOfLiquidityTokens,
         uint256 _tokenQtyAToAdd,
         uint256 _internalTokenAReserveQty
-    ) public pure returns (uint256 liquidityTokenQty) {
+    ) internal pure returns (uint256 liquidityTokenQty) {
         /**
         
                ΔX
@@ -233,7 +233,7 @@ library MathLib {
         uint256 _totalSupplyOfLiquidityTokens,
         uint256 _quoteTokenQty,
         uint256 _quoteTokenReserveBalance
-    ) public pure returns (uint256 liquidityTokenQty) {
+    ) internal pure returns (uint256 liquidityTokenQty) {
         liquidityTokenQty =
             (_quoteTokenQty * _totalSupplyOfLiquidityTokens) /
             _quoteTokenReserveBalance;
@@ -256,7 +256,7 @@ library MathLib {
         uint256 _baseTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
-    ) public returns (uint256 quoteTokenQty, uint256 liquidityTokenQty) {
+    ) internal returns (uint256 quoteTokenQty, uint256 liquidityTokenQty) {
         uint256 baseTokenDecay =
             _baseTokenReserveQty - _internalBalances.baseTokenReserveQty;
 
@@ -321,7 +321,7 @@ library MathLib {
         uint256 _baseTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances memory _internalBalances
-    ) public pure returns (uint256 baseTokenQty, uint256 liquidityTokenQty) {
+    ) internal pure returns (uint256 baseTokenQty, uint256 liquidityTokenQty) {
         uint256 maxBaseTokenQty =
             _internalBalances.baseTokenReserveQty - _baseTokenReserveQty;
         require(
@@ -401,7 +401,7 @@ library MathLib {
         uint256 _baseTokenReserveQty,
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
-    ) public returns (TokenQtys memory tokenQtys) {
+    ) internal returns (TokenQtys memory tokenQtys) {
         if (_totalSupplyOfLiquidityTokens != 0) {
             // we have outstanding liquidity tokens present and an existing price curve
 
@@ -548,7 +548,7 @@ library MathLib {
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances storage _internalBalances
     )
-        public
+        internal
         returns (
             uint256 baseTokenQty,
             uint256 quoteTokenQty,
@@ -613,7 +613,7 @@ library MathLib {
         uint256 _baseTokenReserveQty,
         uint256 _liquidityFeeInBasisPoints,
         InternalBalances storage _internalBalances
-    ) public returns (uint256 baseTokenQty) {
+    ) internal returns (uint256 baseTokenQty) {
         require(
             _baseTokenReserveQty != 0 &&
                 _internalBalances.baseTokenReserveQty != 0,
@@ -671,7 +671,7 @@ library MathLib {
         uint256 _quoteTokenQtyMin,
         uint256 _liquidityFeeInBasisPoints,
         InternalBalances storage _internalBalances
-    ) public returns (uint256 quoteTokenQty) {
+    ) internal returns (uint256 quoteTokenQty) {
         require(
             _baseTokenQty != 0 && _quoteTokenQtyMin != 0,
             "MathLib: INSUFFICIENT_TOKEN_QTY"
@@ -704,7 +704,7 @@ library MathLib {
     function calculateLiquidityTokenFees(
         uint256 _totalSupplyOfLiquidityTokens,
         InternalBalances memory _internalBalances
-    ) public pure returns (uint256 liquidityTokenFeeQty) {
+    ) internal pure returns (uint256 liquidityTokenFeeQty) {
         uint256 rootK =
             sqrt(
                 _internalBalances.baseTokenReserveQty *

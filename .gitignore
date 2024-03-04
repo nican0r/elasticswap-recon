@@ -22,3 +22,9 @@ coverage.json
 miner*.json
 .DS_Store
 .DS_Store?
+
+#medusa 
+medusa/
+
+#echidna
+echidna/
