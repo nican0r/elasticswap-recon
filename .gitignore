@@ -24,7 +24,7 @@ miner*.json
 .DS_Store?
 
 #medusa 
-medusa/
+medusa
 
 #echidna
-echidna/
+echidna

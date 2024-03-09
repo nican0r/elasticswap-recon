@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.4;
 
+import "forge-std/console.sol";
 /**
  * @title MathLib
  * @author ElasticDAO
@@ -614,6 +615,8 @@ library MathLib {
         uint256 _liquidityFeeInBasisPoints,
         InternalBalances storage _internalBalances
     ) internal returns (uint256 baseTokenQty) {
+        // console.log("_baseTokenReserveQty: ", _baseTokenReserveQty);
+        // console.log("_internalBalances.baseTokenReserveQty: ", _internalBalances.baseTokenReserveQty);
         require(
             _baseTokenReserveQty != 0 &&
                 _internalBalances.baseTokenReserveQty != 0,
@@ -648,6 +651,7 @@ library MathLib {
             );
         }
 
+        console.log("baseTokenQty: ", baseTokenQty);
         require(
             baseTokenQty >= _baseTokenQtyMin,
             "MathLib: INSUFFICIENT_BASE_TOKEN_QTY"
@@ -684,6 +688,7 @@ library MathLib {
             _liquidityFeeInBasisPoints
         );
 
+        console.log("quoteTokenQty: ", quoteTokenQty);
         require(
             quoteTokenQty >= _quoteTokenQtyMin,
             "MathLib: INSUFFICIENT_QUOTE_TOKEN_QTY"

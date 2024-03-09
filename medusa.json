@@ -19,8 +19,6 @@
     "constructorArgs": {},
     "deployerAddress": "0x30000",
     "senderAddresses": [
-      "0x10000",
-      "0x20000",
       "0x30000"
     ],
     "blockNumberDelayMax": 60480,
@@ -34,7 +32,7 @@
       "testAllContracts": false,
       "traceAll": false,
       "assertionTesting": {
-        "enabled": true,
+        "enabled": false,
         "testViewMethods": true,
         "panicCodeConfig": {
           "failOnCompilerInsertedPanic": false,
@@ -52,7 +50,7 @@
       "propertyTesting": {
         "enabled": true,
         "testPrefixes": [
-          "crytic_"
+          "invariant_"
         ]
       },
       "optimizationTesting": {

@@ -7,7 +7,9 @@ balanceAddr: 0x1043561a8829300000
 balanceContract: 0x1043561a8829300000
 filterFunctions: []
 # max number of test seqs to run, default is 50000
-# increasing to 100k to see if it increases coverage
-testLimit: 100000
-deployContracts: [["0x1f", "MathLib"]]
-cryticArgs: ["--compile-libraries=(MathLib,0x1f)"]
+testLimit: 50000
+# limit sender to the user that's added liquidity  
+sender: ["0x30000"]
+# sender for property testing, default is 0x10000
+psender: "0x30000"
+cryticArgs: ["--foundry-compile-all"]

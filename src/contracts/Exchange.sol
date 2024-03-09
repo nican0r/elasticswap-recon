@@ -196,11 +196,9 @@ contract Exchange is ERC20, ReentrancyGuard {
 
         uint256 totalSupplyOfLiquidityTokens = this.totalSupply();
         // calculate any DAO fees here.
-        uint256 liquidityTokenFeeQty =
-            MathLib.calculateLiquidityTokenFees(
-                totalSupplyOfLiquidityTokens,
-                internalBalances
-            );
+        uint256 liquidityTokenFeeQty = MathLib.calculateLiquidityTokenFees(totalSupplyOfLiquidityTokens,internalBalances);
+        // @audit setting this here to see if it's reachable in the conditional statement below
+        // uint256 liquidityTokenFeeQty = 1;
 
         // we need to factor this quantity in to any total supply before redemption
         totalSupplyOfLiquidityTokens += liquidityTokenFeeQty;
@@ -226,49 +224,30 @@ contract Exchange is ERC20, ReentrancyGuard {
         // when this person exits.
         {
             //scoping to avoid stack too deep errors
-            uint256 internalBaseTokenReserveQty =
-                internalBalances.baseTokenReserveQty;
-            uint256 baseTokenQtyToRemoveFromInternalAccounting =
-                (_liquidityTokenQty * internalBaseTokenReserveQty) /
-                    totalSupplyOfLiquidityTokens;
+            uint256 internalBaseTokenReserveQty = internalBalances.baseTokenReserveQty;
+            uint256 baseTokenQtyToRemoveFromInternalAccounting = (_liquidityTokenQty * internalBaseTokenReserveQty) / totalSupplyOfLiquidityTokens;
 
-            internalBalances.baseTokenReserveQty = internalBaseTokenReserveQty =
-                internalBaseTokenReserveQty -
-                baseTokenQtyToRemoveFromInternalAccounting;
+            internalBalances.baseTokenReserveQty = internalBaseTokenReserveQty = internalBaseTokenReserveQty - baseTokenQtyToRemoveFromInternalAccounting;
 
             // We should ensure no possible overflow here.
-            uint256 internalQuoteTokenReserveQty =
-                internalBalances.quoteTokenReserveQty;
+            uint256 internalQuoteTokenReserveQty = internalBalances.quoteTokenReserveQty;
             if (quoteTokenQtyToReturn > internalQuoteTokenReserveQty) {
-                internalBalances
-                    .quoteTokenReserveQty = internalQuoteTokenReserveQty = 0;
+                internalBalances.quoteTokenReserveQty = internalQuoteTokenReserveQty = 0;
             } else {
-                internalBalances
-                    .quoteTokenReserveQty = internalQuoteTokenReserveQty =
-                    internalQuoteTokenReserveQty -
-                    quoteTokenQtyToReturn;
+                internalBalances.quoteTokenReserveQty = internalQuoteTokenReserveQty = internalQuoteTokenReserveQty - quoteTokenQtyToReturn;
             }
 
-            internalBalances.kLast =
-                internalBaseTokenReserveQty *
-                internalQuoteTokenReserveQty;
+            internalBalances.kLast = internalBaseTokenReserveQty * internalQuoteTokenReserveQty;
         }
 
         if (liquidityTokenFeeQty != 0) {
-            _mint(
-                IExchangeFactory(exchangeFactoryAddress).feeAddress(),
-                liquidityTokenFeeQty
-            );
+            _mint(IExchangeFactory(exchangeFactoryAddress).feeAddress(), liquidityTokenFeeQty);
         }
 
         _burn(msg.sender, _liquidityTokenQty);
         IERC20(baseToken).safeTransfer(_tokenRecipient, baseTokenQtyToReturn);
         IERC20(quoteToken).safeTransfer(_tokenRecipient, quoteTokenQtyToReturn);
-        emit RemoveLiquidity(
-            msg.sender,
-            baseTokenQtyToReturn,
-            quoteTokenQtyToReturn
-        );
+        emit RemoveLiquidity(msg.sender, baseTokenQtyToReturn, quoteTokenQtyToReturn);
     }
 
     /**
